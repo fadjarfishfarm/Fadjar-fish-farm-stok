@@ -4,7 +4,7 @@ import {
   Menu, X, Sun, Moon, Search, Plus, Pencil, Trash2, Download, Printer,
   ArrowUpDown, TrendingDown, Waves, Filter, RotateCcw, ChevronLeft,
   ChevronRight, CheckCircle2, XCircle, Info, Fish as FishIcon, PackagePlus,
-  PackageMinus, Wallet, Eye
+  PackageMinus, Wallet, Eye, Fish
 } from "lucide-react";
 import {
   LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
@@ -23,6 +23,7 @@ const MENUS = [
   { key: "loss", label: "Data Loss", icon: AlertTriangle },
   { key: "inventory", label: "Inventory", icon: Package },
   { key: "laporan", label: "Laporan", icon: FileBarChart2 },
+  { key: "master", label: "Master Data", icon: Fish },
 ];
 
 const DEFAULT_PRICES = {
@@ -38,16 +39,17 @@ const PENYEBAB_LOSS = ["Penyakit", "Kualitas Air", "Predator", "Stress/Transport
 const METODE_BAYAR = ["Tunai", "Transfer Bank", "QRIS", "E-Wallet"];
 const STATUS_BAYAR = ["Lunas", "DP", "Belum Lunas"];
 
-const STORAGE_KEY = "ikan_db_v1";
+const STORAGE_KEY = "ikan_db_v2";
+
+const LOGO_SRC = "data:image/png;base64,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";
+const APP_NAME = "Fadjar Fish Farm";
 
 /* ======================================================================
    UTILITAS
    ====================================================================== */
 
 const uid = () => `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 7)}`;
-
 const todayStr = () => new Date().toISOString().slice(0, 10);
-
 const daysAgo = (n) => {
   const d = new Date();
   d.setDate(d.getDate() - n);
@@ -74,7 +76,6 @@ const formatDateShort = (iso) => {
 };
 
 const getDistinct = (arr, key) => Array.from(new Set(arr.map((x) => x[key]).filter(Boolean))).sort();
-
 const clampNum = (v) => {
   const n = Number(v);
   return Number.isFinite(n) ? n : 0;
@@ -85,7 +86,6 @@ const recalcKeepStock = (r) =>
 
 const withKeepStock = (r) => ({ ...r, keepStock: recalcKeepStock(r) });
 
-// Menambah/mengurangi field "terjual" pada baris keep stock yang cocok (fishName + batch)
 const adjustStockForSale = (stockRecords, fishName, batch, deltaJumlah) => {
   let matched = false;
   const updated = stockRecords.map((r) => {
@@ -99,7 +99,6 @@ const adjustStockForSale = (stockRecords, fishName, batch, deltaJumlah) => {
   return { stockRecords: updated, matched };
 };
 
-// Menambah/mengurangi field "loss" pada baris keep stock yang cocok (fishName + batch)
 const adjustStockForLoss = (stockRecords, fishName, batch, deltaJumlah) => {
   let matched = false;
   const updated = stockRecords.map((r) => {
@@ -166,77 +165,16 @@ const toCSV = (rows, headers) => {
   return lines.join("\n");
 };
 
-/* ======================================================================
-   SEED DATA (data contoh awal)
-   ====================================================================== */
-
 function seedDatabase() {
-  const fishSpecies = ["Pleco L144", "Pleco L183", "Corydoras Panda", "Endler", "Tropheus Duboisi"];
-  const locations = ["Akuarium A1", "Akuarium A2", "Akuarium B1", "Kolam Karantina"];
-  const customers = ["Budi Santoso", "Rina Wijaya", "Toko Ikan Segar", "Andi Pratama", "Aquascape Store"];
-
-  const mkCreatedAt = (tanggal, hour) => new Date(`${tanggal}T${String(hour).padStart(2, "0")}:00:00`).getTime();
-
-  let stockRecords = [
-    { id: uid(), tanggal: daysAgo(20), fishName: "Pleco L144", batch: "PLC144-A", location: "Akuarium A1", stokAwal: 40, stokMasuk: 15, stokKeluar: 0, terjual: 0, loss: 0, ukuran: "5-7 cm", kondisi: "Sehat", catatan: "Batch impor awal bulan" },
-    { id: uid(), tanggal: daysAgo(10), fishName: "Pleco L144", batch: "PLC144-B", location: "Akuarium A2", stokAwal: 20, stokMasuk: 10, stokKeluar: 0, terjual: 0, loss: 0, ukuran: "7-9 cm", kondisi: "Sehat", catatan: "" },
-    { id: uid(), tanggal: daysAgo(15), fishName: "Pleco L183", batch: "PLC183-A", location: "Akuarium A1", stokAwal: 25, stokMasuk: 5, stokKeluar: 0, terjual: 0, loss: 0, ukuran: "6-8 cm", kondisi: "Sehat", catatan: "" },
-    { id: uid(), tanggal: daysAgo(12), fishName: "Corydoras Panda", batch: "CORP-A", location: "Akuarium B1", stokAwal: 100, stokMasuk: 50, stokKeluar: 0, terjual: 0, loss: 0, ukuran: "2-3 cm", kondisi: "Sehat", catatan: "" },
-    { id: uid(), tanggal: daysAgo(8), fishName: "Endler", batch: "ENDL-A", location: "Kolam Karantina", stokAwal: 200, stokMasuk: 100, stokKeluar: 0, terjual: 0, loss: 0, ukuran: "1-2 cm", kondisi: "Sehat", catatan: "" },
-    { id: uid(), tanggal: daysAgo(18), fishName: "Tropheus Duboisi", batch: "TROP-A", location: "Akuarium A2", stokAwal: 15, stokMasuk: 0, stokKeluar: 0, terjual: 0, loss: 0, ukuran: "4-6 cm", kondisi: "Sehat", catatan: "" },
-    { id: uid(), tanggal: daysAgo(3), fishName: "Corydoras Panda", batch: "CORP-B", location: "Akuarium B1", stokAwal: 30, stokMasuk: 0, stokKeluar: 0, terjual: 0, loss: 0, ukuran: "2-3 cm", kondisi: "Karantina", catatan: "Baru datang, observasi" },
-    { id: uid(), tanggal: daysAgo(1), fishName: "Pleco L183", batch: "PLC183-B", location: "Akuarium A1", stokAwal: 10, stokMasuk: 0, stokKeluar: 0, terjual: 0, loss: 0, ukuran: "6-8 cm", kondisi: "Sehat", catatan: "" },
-  ].map((r, i) => ({ ...r, createdAt: mkCreatedAt(r.tanggal, i % 20), keepStock: recalcKeepStock(r) }));
-
-  const salesSeed = [
-    { tanggal: daysAgo(9), customer: "Budi Santoso", fishName: "Pleco L144", batch: "PLC144-A", jumlah: 5, hargaPerEkor: 65000, metodePembayaran: "Transfer Bank", statusPembayaran: "Lunas", catatan: "" },
-    { tanggal: daysAgo(9), customer: "Toko Ikan Segar", fishName: "Corydoras Panda", batch: "CORP-A", jumlah: 20, hargaPerEkor: 25000, metodePembayaran: "Tunai", statusPembayaran: "Lunas", catatan: "Beli grosir" },
-    { tanggal: daysAgo(8), customer: "Rina Wijaya", fishName: "Endler", batch: "ENDL-A", jumlah: 50, hargaPerEkor: 8000, metodePembayaran: "QRIS", statusPembayaran: "Lunas", catatan: "" },
-    { tanggal: daysAgo(7), customer: "Andi Pratama", fishName: "Pleco L183", batch: "PLC183-A", jumlah: 3, hargaPerEkor: 85000, metodePembayaran: "Transfer Bank", statusPembayaran: "DP", catatan: "Pelunasan menyusul" },
-    { tanggal: daysAgo(6), customer: "Aquascape Store", fishName: "Tropheus Duboisi", batch: "TROP-A", jumlah: 2, hargaPerEkor: 150000, metodePembayaran: "Transfer Bank", statusPembayaran: "Lunas", catatan: "" },
-    { tanggal: daysAgo(5), customer: "Budi Santoso", fishName: "Corydoras Panda", batch: "CORP-A", jumlah: 15, hargaPerEkor: 25000, metodePembayaran: "Tunai", statusPembayaran: "Lunas", catatan: "" },
-    { tanggal: daysAgo(4), customer: "Toko Ikan Segar", fishName: "Endler", batch: "ENDL-A", jumlah: 40, hargaPerEkor: 8000, metodePembayaran: "E-Wallet", statusPembayaran: "Belum Lunas", catatan: "" },
-    { tanggal: daysAgo(3), customer: "Rina Wijaya", fishName: "Pleco L144", batch: "PLC144-B", jumlah: 4, hargaPerEkor: 65000, metodePembayaran: "Transfer Bank", statusPembayaran: "Lunas", catatan: "" },
-    { tanggal: daysAgo(2), customer: "Andi Pratama", fishName: "Corydoras Panda", batch: "CORP-A", jumlah: 10, hargaPerEkor: 25000, metodePembayaran: "Tunai", statusPembayaran: "Lunas", catatan: "" },
-    { tanggal: daysAgo(1), customer: "Aquascape Store", fishName: "Endler", batch: "ENDL-A", jumlah: 30, hargaPerEkor: 8000, metodePembayaran: "QRIS", statusPembayaran: "Lunas", catatan: "" },
-  ];
-
-  const lossesSeed = [
-    { tanggal: daysAgo(9), fishName: "Pleco L144", batch: "PLC144-A", location: "Akuarium A1", jumlahLoss: 2, penyebab: "Kualitas Air", ukuran: "5-7 cm", kondisi: "Lemah", catatan: "" },
-    { tanggal: daysAgo(6), fishName: "Corydoras Panda", batch: "CORP-A", location: "Akuarium B1", jumlahLoss: 5, penyebab: "Penyakit", ukuran: "2-3 cm", kondisi: "Sakit", catatan: "Gejala jamur" },
-    { tanggal: daysAgo(4), fishName: "Endler", batch: "ENDL-A", location: "Kolam Karantina", jumlahLoss: 8, penyebab: "Predator", ukuran: "1-2 cm", kondisi: "Mati", catatan: "" },
-    { tanggal: daysAgo(2), fishName: "Corydoras Panda", batch: "CORP-B", location: "Akuarium B1", jumlahLoss: 3, penyebab: "Stress/Transportasi", ukuran: "2-3 cm", kondisi: "Lemah", catatan: "" },
-    { tanggal: daysAgo(0), fishName: "Tropheus Duboisi", batch: "TROP-A", location: "Akuarium A2", jumlahLoss: 1, penyebab: "Usia/Alami", ukuran: "4-6 cm", kondisi: "Mati", catatan: "" },
-  ];
-
-  let sales = [];
-  salesSeed.forEach((s, i) => {
-    const sale = { ...s, id: uid(), total: s.jumlah * s.hargaPerEkor, createdAt: mkCreatedAt(s.tanggal, i % 20) + 1 };
-    sales.push(sale);
-    const { stockRecords: updated } = adjustStockForSale(stockRecords, s.fishName, s.batch, s.jumlah);
-    stockRecords = updated;
-  });
-
-  let losses = [];
-  lossesSeed.forEach((l, i) => {
-    const loss = { ...l, id: uid(), createdAt: mkCreatedAt(l.tanggal, i % 20) + 2 };
-    losses.push(loss);
-    const { stockRecords: updated } = adjustStockForLoss(stockRecords, l.fishName, l.batch, l.jumlahLoss);
-    stockRecords = updated;
-  });
-
-  return { fishSpecies, locations, customers, stockRecords, sales, losses };
+  return { fishSpecies: [], locations: [], customers: [], stockRecords: [], sales: [], losses: [] };
 }
 
 /* ======================================================================
-   THEME CONTEXT (dark mode tanpa bergantung pada Tailwind dark: variant)
+   THEME CONTEXT
    ====================================================================== */
 
 const ThemeCtx = createContext({ dark: false, c: (l) => l });
-
-function useTheme() {
-  return useContext(ThemeCtx);
-}
+function useTheme() { return useContext(ThemeCtx); }
 
 /* ======================================================================
    KOMPONEN UI DASAR
@@ -285,22 +223,19 @@ function useToast() {
 function Modal({ title, onClose, children, footer, wide }) {
   const { c } = useTheme();
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
-      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
-      <div
-        className={`relative w-full ${wide ? "sm:max-w-2xl" : "sm:max-w-lg"} max-h-[92vh] flex flex-col rounded-t-2xl sm:rounded-2xl shadow-2xl ${c(
-          "bg-white",
-          "bg-slate-900"
-        )} border ${c("border-slate-200", "border-slate-700")}`}
-      >
-        <div className={`flex items-center justify-between px-5 py-4 border-b ${c("border-slate-100", "border-slate-800")}`}>
-          <h3 className={`font-semibold text-base ${c("text-slate-800", "text-slate-100")}`}>{title}</h3>
-          <button onClick={onClose} className={`p-1.5 rounded-lg ${c("hover:bg-slate-100", "hover:bg-slate-800")}`}>
-            <X size={18} className={c("text-slate-500", "text-slate-400")} />
-          </button>
+    <div className="fixed inset-0 z-50 overflow-y-auto">
+      <div className="fixed inset-0 bg-black/50" onClick={onClose} />
+      <div className="relative flex min-h-full items-start sm:items-center justify-center p-2 sm:p-4">
+        <div className={`relative w-full ${wide ? "sm:max-w-2xl" : "sm:max-w-lg"} flex flex-col rounded-2xl shadow-2xl ${c("bg-white", "bg-slate-900")} border ${c("border-slate-200", "border-slate-700")}`}>
+          <div className={`flex items-center justify-between px-5 py-4 border-b ${c("border-slate-100", "border-slate-800")}`}>
+            <h3 className={`font-semibold text-base ${c("text-slate-800", "text-slate-100")}`}>{title}</h3>
+            <button onClick={onClose} className={`p-1.5 rounded-lg ${c("hover:bg-slate-100", "hover:bg-slate-800")}`}>
+              <X size={18} className={c("text-slate-500", "text-slate-400")} />
+            </button>
+          </div>
+          <div className="px-5 py-4">{children}</div>
+          {footer && <div className={`px-5 py-3 border-t ${c("border-slate-100", "border-slate-800")} flex justify-end gap-2`}>{footer}</div>}
         </div>
-        <div className="px-5 py-4 overflow-y-auto">{children}</div>
-        {footer && <div className={`px-5 py-3 border-t ${c("border-slate-100", "border-slate-800")} flex justify-end gap-2`}>{footer}</div>}
       </div>
     </div>
   );
@@ -374,7 +309,7 @@ function StatCard({ icon: Icon, label, value, sub, accent }) {
     <div className={`rounded-2xl border p-4 ${c("bg-white border-slate-200", "bg-slate-900 border-slate-800")}`}>
       <div className="flex items-start justify-between">
         <div>
-          <p className={`text-xs font-medium ${c("text-slate-500", "text-slate-400")}`}>{label}</p>
+          <p className={`text-xs font-medium ${c("text-slate-50", "text-slate-400")}`}>{label}</p>
           <p className={`text-xl font-bold mt-1 ${c("text-slate-800", "text-slate-100")}`}>{value}</p>
           {sub && <p className={`text-[11px] mt-1 ${c("text-slate-400", "text-slate-500")}`}>{sub}</p>}
         </div>
@@ -424,8 +359,6 @@ function EmptyState({ text }) {
   );
 }
 
-/* ---------------- DataTable generik ---------------- */
-
 function DataTable({ columns, data, searchKeys = [], pageSize = 8, onEdit, onDelete, onView, filters, emptyText = "Belum ada data." }) {
   const { c } = useTheme();
   const [query, setQuery] = useState("");
@@ -444,8 +377,7 @@ function DataTable({ columns, data, searchKeys = [], pageSize = 8, onEdit, onDel
   const sorted = useMemo(() => {
     if (!sortKey) return filtered;
     return [...filtered].sort((a, b) => {
-      const av = a[sortKey],
-        bv = b[sortKey];
+      const av = a[sortKey], bv = b[sortKey];
       if (typeof av === "number" && typeof bv === "number") return sortDir === "asc" ? av - bv : bv - av;
       return sortDir === "asc" ? String(av ?? "").localeCompare(String(bv ?? "")) : String(bv ?? "").localeCompare(String(av ?? ""));
     });
@@ -468,12 +400,7 @@ function DataTable({ columns, data, searchKeys = [], pageSize = 8, onEdit, onDel
         {searchKeys.length > 0 && (
           <div className="relative flex-1 min-w-[160px]">
             <Search size={15} className={`absolute left-2.5 top-1/2 -translate-y-1/2 ${c("text-slate-400", "text-slate-500")}`} />
-            <input
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Cari data..."
-              className={`${inputCls(c)} pl-8 py-1.5`}
-            />
+            <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Cari data..." className={`${inputCls(c)} pl-8 py-1.5`} />
           </div>
         )}
         {filters}
@@ -509,10 +436,7 @@ function DataTable({ columns, data, searchKeys = [], pageSize = 8, onEdit, onDel
               </tr>
             )}
             {paged.map((row, idx) => (
-              <tr
-                key={row.id ?? idx}
-                className={`border-t ${c("border-slate-100 hover:bg-slate-50", "border-slate-800 hover:bg-slate-800/40")} transition-colors`}
-              >
+              <tr key={row.id ?? idx} className={`border-t ${c("border-slate-100 hover:bg-slate-50", "border-slate-800 hover:bg-slate-800/40")} transition-colors`}>
                 {columns.map((col) => (
                   <td key={col.key} className={`px-3 py-2.5 whitespace-nowrap ${c("text-slate-700", "text-slate-200")}`}>
                     {col.render ? col.render(row) : row[col.key]}
@@ -554,9 +478,7 @@ function DataTable({ columns, data, searchKeys = [], pageSize = 8, onEdit, onDel
             <button disabled={page === 0} onClick={() => setPage((p) => p - 1)} className={`p-1 rounded-md disabled:opacity-30 ${c("hover:bg-slate-100", "hover:bg-slate-800")}`}>
               <ChevronLeft size={16} />
             </button>
-            <span>
-              {page + 1} / {totalPages}
-            </span>
+            <span>{page + 1} / {totalPages}</span>
             <button disabled={page >= totalPages - 1} onClick={() => setPage((p) => p + 1)} className={`p-1 rounded-md disabled:opacity-30 ${c("hover:bg-slate-100", "hover:bg-slate-800")}`}>
               <ChevronRight size={16} />
             </button>
@@ -573,14 +495,11 @@ function SelectFilter({ value, onChange, options, placeholder }) {
     <select value={value} onChange={(e) => onChange(e.target.value)} className={`${inputCls(c)} py-1.5 w-auto min-w-[120px]`}>
       <option value="">{placeholder}</option>
       {options.map((o) => (
-        <option key={o} value={o}>
-          {o}
-        </option>
+        <option key={o} value={o}>{o}</option>
       ))}
     </select>
   );
 }
-
 
 /* ======================================================================
    SIDEBAR & TOPBAR
@@ -591,22 +510,13 @@ function Sidebar({ active, onSelect, mobileOpen, setMobileOpen, collapsed, setCo
   return (
     <>
       {mobileOpen && <div className="fixed inset-0 bg-black/50 z-40 lg:hidden" onClick={() => setMobileOpen(false)} />}
-      <aside
-        className={`fixed z-50 lg:z-30 top-0 left-0 h-full flex flex-col transition-all duration-200 ${
-          collapsed ? "lg:w-[76px]" : "lg:w-64"
-        } w-64 ${mobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"} border-r ${c(
-          "bg-white border-slate-200",
-          "bg-slate-900 border-slate-800"
-        )}`}
-      >
+      <aside className={`fixed z-50 lg:z-30 top-0 left-0 h-full flex flex-col transition-all duration-200 ${collapsed ? "lg:w-[76px]" : "lg:w-64"} w-64 ${mobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"} border-r ${c("bg-white border-slate-200", "bg-slate-900 border-slate-800")}`}>
         <div className={`flex items-center gap-2.5 px-4 h-16 border-b shrink-0 ${c("border-slate-100", "border-slate-800")}`}>
-          <div className="p-2 rounded-xl bg-gradient-to-br from-teal-500 to-cyan-500 text-white shrink-0">
-            <Waves size={18} />
-          </div>
+          <img src={LOGO_SRC} alt={APP_NAME} className="h-9 w-auto shrink-0" style={{ filter: dark ? "invert(1)" : "none" }} />
           {!collapsed && (
             <div className="min-w-0">
-              <p className={`font-bold text-sm leading-tight truncate ${c("text-slate-800", "text-slate-100")}`}>AquaStock</p>
-              <p className={`text-[11px] leading-tight ${c("text-slate-400", "text-slate-500")}`}>Monitoring Ikan Hias</p>
+              <p className={`font-bold text-sm leading-tight truncate ${c("text-slate-800", "text-slate-100")}`}>{APP_NAME}</p>
+              <p className={`text-[11px] leading-tight ${c("text-slate-400", "text-slate-500")}`}>Monitoring Stok Ikan</p>
             </div>
           )}
           <button className="ml-auto lg:hidden p-1" onClick={() => setMobileOpen(false)}>
@@ -621,15 +531,10 @@ function Sidebar({ active, onSelect, mobileOpen, setMobileOpen, collapsed, setCo
             return (
               <button
                 key={m.key}
-                onClick={() => {
-                  onSelect(m.key);
-                  setMobileOpen(false);
-                }}
+                onClick={() => { onSelect(m.key); setMobileOpen(false); }}
                 title={collapsed ? m.label : undefined}
                 className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors ${
-                  isActive
-                    ? "bg-gradient-to-r from-teal-600 to-cyan-600 text-white shadow-sm shadow-teal-600/20"
-                    : c("text-slate-600 hover:bg-slate-100", "text-slate-300 hover:bg-slate-800")
+                  isActive ? "bg-gradient-to-r from-teal-600 to-cyan-600 text-white shadow-sm shadow-teal-600/20" : c("text-slate-600 hover:bg-slate-100", "text-slate-300 hover:bg-slate-800")
                 } ${collapsed ? "justify-center" : ""}`}
               >
                 <Icon size={18} className="shrink-0" />
@@ -640,13 +545,7 @@ function Sidebar({ active, onSelect, mobileOpen, setMobileOpen, collapsed, setCo
         </nav>
 
         <div className={`hidden lg:flex p-2.5 border-t ${c("border-slate-100", "border-slate-800")}`}>
-          <button
-            onClick={() => setCollapsed((v) => !v)}
-            className={`w-full flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-medium ${c(
-              "text-slate-500 hover:bg-slate-100",
-              "text-slate-400 hover:bg-slate-800"
-            )}`}
-          >
+          <button onClick={() => setCollapsed((v) => !v)} className={`w-full flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-medium ${c("text-slate-500 hover:bg-slate-100", "text-slate-400 hover:bg-slate-800")}`}>
             {collapsed ? <ChevronRight size={15} /> : <><ChevronLeft size={15} /> Ciutkan</>}
           </button>
         </div>
@@ -664,23 +563,17 @@ function Topbar({ title, setMobileOpen, dark, setDark }) {
       </button>
       <h1 className={`font-semibold text-base sm:text-lg ${c("text-slate-800", "text-slate-100")}`}>{title}</h1>
       <div className="ml-auto flex items-center gap-2">
-        <button
-          onClick={() => setDark((v) => !v)}
-          className={`p-2 rounded-lg border ${c("border-slate-200 hover:bg-slate-100 text-slate-500", "border-slate-700 hover:bg-slate-800 text-slate-300")}`}
-          title="Ganti tema"
-        >
+        <button onClick={() => setDark((v) => !v)} className={`p-2 rounded-lg border ${c("border-slate-200 hover:bg-slate-100 text-slate-500", "border-slate-700 hover:bg-slate-800 text-slate-300")}`} title="Ganti tema">
           {dark ? <Sun size={17} /> : <Moon size={17} />}
         </button>
-        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-teal-500 to-cyan-500 text-white flex items-center justify-center text-xs font-bold shrink-0">
-          AS
-        </div>
+        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-teal-500 to-cyan-500 text-white flex items-center justify-center text-xs font-bold shrink-0">FFF</div>
       </div>
     </header>
   );
 }
 
 /* ======================================================================
-   HALAMAN: DASHBOARD
+   PAGES
    ====================================================================== */
 
 function DashboardPage({ db }) {
@@ -730,27 +623,15 @@ function DashboardPage({ db }) {
   const activity = useMemo(() => {
     const items = [
       ...sales.map((s) => ({
-        id: "S" + s.id,
-        createdAt: s.createdAt,
-        tanggal: s.tanggal,
-        type: "Penjualan",
-        color: "cyan",
+        id: "S" + s.id, createdAt: s.createdAt, tanggal: s.tanggal, type: "Penjualan", color: "cyan",
         desc: `Penjualan ${s.jumlah} ekor ${s.fishName} (${s.batch}) ke ${s.customer} — ${formatCurrency(s.total)}`,
       })),
       ...losses.map((l) => ({
-        id: "L" + l.id,
-        createdAt: l.createdAt,
-        tanggal: l.tanggal,
-        type: "Loss",
-        color: "red",
+        id: "L" + l.id, createdAt: l.createdAt, tanggal: l.tanggal, type: "Loss", color: "red",
         desc: `Loss ${l.jumlahLoss} ekor ${l.fishName} (${l.batch}) — ${l.penyebab}`,
       })),
       ...stockRecords.map((r) => ({
-        id: "R" + r.id,
-        createdAt: r.createdAt,
-        tanggal: r.tanggal,
-        type: "Keep Stock",
-        color: "teal",
+        id: "R" + r.id, createdAt: r.createdAt, tanggal: r.tanggal, type: "Keep Stock", color: "teal",
         desc: `Update stok ${r.fishName} (${r.batch}) di ${r.location} — Keep Stock: ${formatNumber(r.keepStock)} ekor`,
       })),
     ];
@@ -838,16 +719,12 @@ function DashboardPage({ db }) {
             <tbody>
               {activity.length === 0 && (
                 <tr>
-                  <td>
-                    <EmptyState text="Belum ada aktivitas." />
-                  </td>
+                  <td><EmptyState text="Belum ada aktivitas." /></td>
                 </tr>
               )}
               {activity.map((a) => (
                 <tr key={a.id} className={`border-t ${c("border-slate-100", "border-slate-800")}`}>
-                  <td className="px-4 py-2.5 w-28 whitespace-nowrap">
-                    <Badge color={a.color}>{a.type}</Badge>
-                  </td>
+                  <td className="px-4 py-2.5 w-28 whitespace-nowrap"><Badge color={a.color}>{a.type}</Badge></td>
                   <td className={`px-4 py-2.5 ${c("text-slate-600", "text-slate-300")}`}>{a.desc}</td>
                   <td className={`px-4 py-2.5 text-right w-32 whitespace-nowrap ${c("text-slate-400", "text-slate-500")}`}>{formatDate(a.tanggal)}</td>
                 </tr>
@@ -860,23 +737,9 @@ function DashboardPage({ db }) {
   );
 }
 
-/* ======================================================================
-   HALAMAN: KEEP STOCK
-   ====================================================================== */
-
 const emptyStockForm = {
-  tanggal: todayStr(),
-  fishName: "",
-  batch: "",
-  location: "",
-  stokAwal: 0,
-  stokMasuk: 0,
-  stokKeluar: 0,
-  terjual: 0,
-  loss: 0,
-  ukuran: "",
-  kondisi: "Sehat",
-  catatan: "",
+  tanggal: todayStr(), fishName: "", batch: "", location: "", stokAwal: 0,
+  stokMasuk: 0, stokKeluar: 0, terjual: 0, loss: 0, ukuran: "", kondisi: "Sehat", catatan: "",
 };
 
 function KeepStockPage({ db, setDb, toast }) {
@@ -903,16 +766,8 @@ function KeepStockPage({ db, setDb, toast }) {
       inRange(r.tanggal, fFrom, fTo)
   );
 
-  const openCreate = () => {
-    setEditingId(null);
-    setForm(emptyStockForm);
-    setModalOpen(true);
-  };
-  const openEdit = (row) => {
-    setEditingId(row.id);
-    setForm({ ...row });
-    setModalOpen(true);
-  };
+  const openCreate = () => { setEditingId(null); setForm(emptyStockForm); setModalOpen(true); };
+  const openEdit = (row) => { setEditingId(row.id); setForm({ ...row }); setModalOpen(true); };
 
   const handleSave = () => {
     if (!form.tanggal || !form.fishName || !form.batch || !form.location) {
@@ -944,6 +799,15 @@ function KeepStockPage({ db, setDb, toast }) {
     setModalOpen(false);
   };
 
+  const quickAdjust = (row, delta) => {
+    const next = { ...row, stokMasuk: Math.max(0, clampNum(row.stokMasuk) + delta) };
+    if (recalcKeepStock(next) < 0) {
+      toast("Stok tidak boleh negatif.", "error");
+      return;
+    }
+    setDb((prev) => ({ ...prev, stockRecords: prev.stockRecords.map((r) => (r.id === row.id ? withKeepStock(next) : r)) }));
+  };
+
   const handleDelete = () => {
     setDb((prev) => ({ ...prev, stockRecords: prev.stockRecords.filter((r) => r.id !== deleteTarget.id) }));
     toast("Data Keep Stock berhasil dihapus.");
@@ -956,7 +820,13 @@ function KeepStockPage({ db, setDb, toast }) {
     { key: "batch", label: "Batch", sortable: true, render: (r) => <span className="font-mono text-xs">{r.batch}</span> },
     { key: "location", label: "Lokasi", sortable: true },
     { key: "stokAwal", label: "Stok Awal", sortable: true },
-    { key: "stokMasuk", label: "Masuk", sortable: true },
+    { key: "stokMasuk", label: "Masuk (+/-)", sortable: true, render: (r) => (
+      <span className="inline-flex items-center gap-1.5">
+        <button onClick={() => quickAdjust(r, -1)} className="w-6 h-6 rounded-md border text-sm leading-none hover:bg-slate-100">−</button>
+        <span className="min-w-[2ch] text-center">{formatNumber(r.stokMasuk)}</span>
+        <button onClick={() => quickAdjust(r, 1)} className="w-6 h-6 rounded-md border text-sm leading-none hover:bg-slate-100">+</button>
+      </span>
+    ) },
     { key: "stokKeluar", label: "Keluar", sortable: true },
     { key: "terjual", label: "Terjual", sortable: true },
     { key: "loss", label: "Loss", sortable: true },
@@ -994,13 +864,7 @@ function KeepStockPage({ db, setDb, toast }) {
             <input type="date" value={fFrom} onChange={(e) => setFFrom(e.target.value)} className={`${inputCls(c)} py-1.5 w-auto`} />
             <input type="date" value={fTo} onChange={(e) => setFTo(e.target.value)} className={`${inputCls(c)} py-1.5 w-auto`} />
             {(fFish || fBatch || fLoc || fFrom || fTo) && (
-              <button
-                onClick={() => {
-                  setFFish(""); setFBatch(""); setFLoc(""); setFFrom(""); setFTo("");
-                }}
-                className={`p-1.5 rounded-lg ${c("hover:bg-slate-100 text-slate-500", "hover:bg-slate-800 text-slate-400")}`}
-                title="Reset filter"
-              >
+              <button onClick={() => { setFFish(""); setFBatch(""); setFLoc(""); setFFrom(""); setFTo(""); }} className={`p-1.5 rounded-lg ${c("hover:bg-slate-100 text-slate-500", "hover:bg-slate-800 text-slate-400")}`} title="Reset filter">
                 <RotateCcw size={15} />
               </button>
             )}
@@ -1015,57 +879,35 @@ function KeepStockPage({ db, setDb, toast }) {
           wide
           footer={
             <>
-              <button onClick={() => setModalOpen(false)} className={`px-4 py-2 rounded-lg text-sm font-medium border ${c("border-slate-200 text-slate-600 hover:bg-slate-50", "border-slate-700 text-slate-300 hover:bg-slate-800")}`}>
-                Batal
-              </button>
-              <button onClick={handleSave} className="px-4 py-2 rounded-lg text-sm font-medium bg-teal-600 text-white hover:bg-teal-700">
-                Simpan
-              </button>
+              <button onClick={() => setModalOpen(false)} className={`px-4 py-2 rounded-lg text-sm font-medium border ${c("border-slate-200 text-slate-600 hover:bg-slate-50", "border-slate-700 text-slate-300 hover:bg-slate-800")}`}>Batal</button>
+              <button onClick={handleSave} className="px-4 py-2 rounded-lg text-sm font-medium bg-teal-600 text-white hover:bg-teal-700">Simpan</button>
             </>
           }
         >
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4">
-            <Field label="Tanggal" required>
-              <input type="date" value={form.tanggal} onChange={(e) => setForm({ ...form, tanggal: e.target.value })} className={inputCls(c)} />
-            </Field>
+            <Field label="Tanggal" required><input type="date" value={form.tanggal} onChange={(e) => setForm({ ...form, tanggal: e.target.value })} className={inputCls(c)} /></Field>
             <Field label="Nama Ikan" required>
               <input list="fishlist" value={form.fishName} onChange={(e) => setForm({ ...form, fishName: e.target.value })} className={inputCls(c)} placeholder="mis. Pleco L144" />
               <datalist id="fishlist">{fishOptions.map((f) => <option key={f} value={f} />)}</datalist>
             </Field>
-            <Field label="Kode / Batch" required>
-              <input value={form.batch} onChange={(e) => setForm({ ...form, batch: e.target.value })} className={inputCls(c)} placeholder="mis. PLC144-A" />
-            </Field>
+            <Field label="Kode / Batch" required><input value={form.batch} onChange={(e) => setForm({ ...form, batch: e.target.value })} className={inputCls(c)} placeholder="mis. PLC144-A" /></Field>
             <Field label="Lokasi Penyimpanan" required>
               <input list="loclist" value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} className={inputCls(c)} placeholder="mis. Akuarium A1" />
               <datalist id="loclist">{locOptions.map((f) => <option key={f} value={f} />)}</datalist>
             </Field>
-            <Field label="Stok Awal">
-              <input type="number" min="0" value={form.stokAwal} onChange={(e) => setForm({ ...form, stokAwal: e.target.value })} className={inputCls(c)} />
-            </Field>
-            <Field label="Stok Masuk">
-              <input type="number" min="0" value={form.stokMasuk} onChange={(e) => setForm({ ...form, stokMasuk: e.target.value })} className={inputCls(c)} />
-            </Field>
-            <Field label="Stok Keluar (selain terjual)">
-              <input type="number" min="0" value={form.stokKeluar} onChange={(e) => setForm({ ...form, stokKeluar: e.target.value })} className={inputCls(c)} />
-            </Field>
-            <Field label="Ukuran Ikan">
-              <input value={form.ukuran} onChange={(e) => setForm({ ...form, ukuran: e.target.value })} className={inputCls(c)} placeholder="mis. 5-7 cm" />
-            </Field>
-            <Field label="Jumlah Terjual" hint="Terisi otomatis dari modul Penjualan">
-              <input type="number" min="0" value={form.terjual} onChange={(e) => setForm({ ...form, terjual: e.target.value })} className={inputCls(c)} />
-            </Field>
-            <Field label="Jumlah Loss / Mati" hint="Terisi otomatis dari modul Data Loss">
-              <input type="number" min="0" value={form.loss} onChange={(e) => setForm({ ...form, loss: e.target.value })} className={inputCls(c)} />
-            </Field>
+            <Field label="Stok Awal"><input type="number" min="0" value={form.stokAwal} onChange={(e) => setForm({ ...form, stokAwal: e.target.value })} className={inputCls(c)} /></Field>
+            <Field label="Stok Masuk"><input type="number" min="0" value={form.stokMasuk} onChange={(e) => setForm({ ...form, stokMasuk: e.target.value })} className={inputCls(c)} /></Field>
+            <Field label="Stok Keluar (selain terjual)"><input type="number" min="0" value={form.stokKeluar} onChange={(e) => setForm({ ...form, stokKeluar: e.target.value })} className={inputCls(c)} /></Field>
+            <Field label="Ukuran Ikan"><input value={form.ukuran} onChange={(e) => setForm({ ...form, ukuran: e.target.value })} className={inputCls(c)} placeholder="mis. 5-7 cm" /></Field>
+            <Field label="Jumlah Terjual" hint="Terisi otomatis dari modul Penjualan"><input type="number" min="0" value={form.terjual} onChange={(e) => setForm({ ...form, terjual: e.target.value })} className={inputCls(c)} /></Field>
+            <Field label="Jumlah Loss / Mati" hint="Terisi otomatis dari modul Data Loss"><input type="number" min="0" value={form.loss} onChange={(e) => setForm({ ...form, loss: e.target.value })} className={inputCls(c)} /></Field>
             <Field label="Kondisi Ikan">
               <select value={form.kondisi} onChange={(e) => setForm({ ...form, kondisi: e.target.value })} className={inputCls(c)}>
                 {KONDISI_OPTIONS.map((k) => <option key={k} value={k}>{k}</option>)}
               </select>
             </Field>
             <div className="sm:col-span-2">
-              <Field label="Catatan">
-                <textarea value={form.catatan} onChange={(e) => setForm({ ...form, catatan: e.target.value })} className={inputCls(c)} rows={2} />
-              </Field>
+              <Field label="Catatan"><textarea value={form.catatan} onChange={(e) => setForm({ ...form, catatan: e.target.value })} className={inputCls(c)} rows={2} /></Field>
             </div>
           </div>
           <div className={`rounded-xl px-4 py-3 flex items-center justify-between ${c("bg-teal-50", "bg-teal-500/10")}`}>
@@ -1076,30 +918,15 @@ function KeepStockPage({ db, setDb, toast }) {
       )}
 
       {deleteTarget && (
-        <ConfirmDialog
-          message={`Yakin ingin menghapus data Keep Stock "${deleteTarget.fishName}" batch ${deleteTarget.batch}?`}
-          onConfirm={handleDelete}
-          onCancel={() => setDeleteTarget(null)}
-        />
+        <ConfirmDialog message={`Yakin ingin menghapus data Keep Stock "${deleteTarget.fishName}" batch ${deleteTarget.batch}?`} onConfirm={handleDelete} onCancel={() => setDeleteTarget(null)} />
       )}
     </div>
   );
 }
 
-/* ======================================================================
-   HALAMAN: SALES / PENJUALAN
-   ====================================================================== */
-
 const emptySaleForm = {
-  tanggal: todayStr(),
-  customer: "",
-  fishName: "",
-  batch: "",
-  jumlah: 1,
-  hargaPerEkor: 0,
-  metodePembayaran: "Tunai",
-  statusPembayaran: "Lunas",
-  catatan: "",
+  tanggal: todayStr(), customer: "", fishName: "", batch: "",
+  jumlah: 1, hargaPerEkor: 0, metodePembayaran: "Tunai", statusPembayaran: "Lunas", catatan: "",
 };
 
 function SalesPage({ db, setDb, toast }) {
@@ -1121,23 +948,14 @@ function SalesPage({ db, setDb, toast }) {
     (s) => (!fFish || s.fishName === fFish) && (!fStatus || s.statusPembayaran === fStatus) && inRange(s.tanggal, fFrom, fTo)
   );
 
-  const openCreate = () => {
-    setEditingSale(null);
-    setForm(emptySaleForm);
-    setModalOpen(true);
-  };
-  const openEdit = (row) => {
-    setEditingSale(row);
-    setForm({ ...row });
-    setModalOpen(true);
-  };
+  const openCreate = () => { setEditingSale(null); setForm(emptySaleForm); setModalOpen(true); };
+  const openEdit = (row) => { setEditingSale(row); setForm({ ...row }); setModalOpen(true); };
 
   useEffect(() => {
     if (modalOpen && !editingSale && form.fishName) {
       setForm((f) => (f.hargaPerEkor ? f : { ...f, hargaPerEkor: getAvgPrice(db.sales, f.fishName) }));
     }
-    // eslint-disable-next-line
-  }, [form.fishName]);
+  }, [form.fishName, modalOpen, editingSale, db.sales]);
 
   const handleSave = () => {
     if (!form.tanggal || !form.customer || !form.fishName || !form.batch || !form.jumlah || !form.hargaPerEkor) {
@@ -1153,7 +971,6 @@ function SalesPage({ db, setDb, toast }) {
       let matched = true;
 
       if (editingSale) {
-        // Reverse pengaruh transaksi lama, lalu terapkan yang baru
         const rev = adjustStockForSale(stockRecords, editingSale.fishName, editingSale.batch, -editingSale.jumlah);
         stockRecords = rev.stockRecords;
         const app = adjustStockForSale(stockRecords, form.fishName, form.batch, jumlah);
@@ -1182,6 +999,26 @@ function SalesPage({ db, setDb, toast }) {
     setModalOpen(false);
   };
 
+  const quickAdjustSale = (sale, delta) => {
+    const newJumlah = clampNum(sale.jumlah) + delta;
+    if (newJumlah < 1) {
+      toast("Jumlah minimal 1. Hapus transaksi bila ingin membatalkan.", "error");
+      return;
+    }
+    const row = db.stockRecords.find((r) => r.fishName === sale.fishName && r.batch === sale.batch);
+    if (row && delta > 0 && row.keepStock < delta) {
+      toast("Stok tidak cukup.", "error");
+      return;
+    }
+    setDb((prev) => {
+      const { stockRecords } = adjustStockForSale(prev.stockRecords, sale.fishName, sale.batch, delta);
+      const sales = prev.sales.map((x) =>
+        x.id === sale.id ? { ...x, jumlah: newJumlah, total: newJumlah * clampNum(x.hargaPerEkor) } : x
+      );
+      return { ...prev, stockRecords, sales };
+    });
+  };
+
   const handleDelete = () => {
     setDb((prev) => {
       const { stockRecords } = adjustStockForSale(prev.stockRecords, deleteTarget.fishName, deleteTarget.batch, -deleteTarget.jumlah);
@@ -1198,7 +1035,13 @@ function SalesPage({ db, setDb, toast }) {
     { key: "customer", label: "Customer", sortable: true },
     { key: "fishName", label: "Nama Ikan", sortable: true },
     { key: "batch", label: "Batch", render: (r) => <span className="font-mono text-xs">{r.batch}</span> },
-    { key: "jumlah", label: "Jumlah", sortable: true, render: (r) => `${formatNumber(r.jumlah)} ekor` },
+    { key: "jumlah", label: "Jumlah (+/-)", sortable: true, render: (r) => (
+      <span className="inline-flex items-center gap-1.5">
+        <button onClick={() => quickAdjustSale(r, -1)} className="w-6 h-6 rounded-md border text-sm leading-none hover:bg-slate-100">−</button>
+        <span className="min-w-[2ch] text-center">{formatNumber(r.jumlah)}</span>
+        <button onClick={() => quickAdjustSale(r, 1)} className="w-6 h-6 rounded-md border text-sm leading-none hover:bg-slate-100">+</button>
+      </span>
+    ) },
     { key: "hargaPerEkor", label: "Harga/Ekor", sortable: true, render: (r) => formatCurrency(r.hargaPerEkor) },
     { key: "total", label: "Total", sortable: true, render: (r) => <span className="font-semibold">{formatCurrency(r.total)}</span> },
     { key: "metodePembayaran", label: "Metode" },
@@ -1243,19 +1086,13 @@ function SalesPage({ db, setDb, toast }) {
           wide
           footer={
             <>
-              <button onClick={() => setModalOpen(false)} className={`px-4 py-2 rounded-lg text-sm font-medium border ${c("border-slate-200 text-slate-600 hover:bg-slate-50", "border-slate-700 text-slate-300 hover:bg-slate-800")}`}>
-                Batal
-              </button>
-              <button onClick={handleSave} className="px-4 py-2 rounded-lg text-sm font-medium bg-teal-600 text-white hover:bg-teal-700">
-                Simpan
-              </button>
+              <button onClick={() => setModalOpen(false)} className={`px-4 py-2 rounded-lg text-sm font-medium border ${c("border-slate-200 text-slate-600 hover:bg-slate-50", "border-slate-700 text-slate-300 hover:bg-slate-800")}`}>Batal</button>
+              <button onClick={handleSave} className="px-4 py-2 rounded-lg text-sm font-medium bg-teal-600 text-white hover:bg-teal-700">Simpan</button>
             </>
           }
         >
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4">
-            <Field label="Tanggal" required>
-              <input type="date" value={form.tanggal} onChange={(e) => setForm({ ...form, tanggal: e.target.value })} className={inputCls(c)} />
-            </Field>
+            <Field label="Tanggal" required><input type="date" value={form.tanggal} onChange={(e) => setForm({ ...form, tanggal: e.target.value })} className={inputCls(c)} /></Field>
             <Field label="Customer" required>
               <input list="custlist" value={form.customer} onChange={(e) => setForm({ ...form, customer: e.target.value })} className={inputCls(c)} placeholder="Nama pembeli" />
               <datalist id="custlist">{customerOptions.map((f) => <option key={f} value={f} />)}</datalist>
@@ -1268,12 +1105,8 @@ function SalesPage({ db, setDb, toast }) {
               <input list="batchlist2" value={form.batch} onChange={(e) => setForm({ ...form, batch: e.target.value })} className={inputCls(c)} />
               <datalist id="batchlist2">{batchForFish.map((f) => <option key={f} value={f} />)}</datalist>
             </Field>
-            <Field label="Jumlah (ekor)" required>
-              <input type="number" min="1" value={form.jumlah} onChange={(e) => setForm({ ...form, jumlah: e.target.value })} className={inputCls(c)} />
-            </Field>
-            <Field label="Harga per Ekor" required>
-              <input type="number" min="0" value={form.hargaPerEkor} onChange={(e) => setForm({ ...form, hargaPerEkor: e.target.value })} className={inputCls(c)} />
-            </Field>
+            <Field label="Jumlah (ekor)" required><input type="number" min="1" value={form.jumlah} onChange={(e) => setForm({ ...form, jumlah: e.target.value })} className={inputCls(c)} /></Field>
+            <Field label="Harga per Ekor" required><input type="number" min="0" value={form.hargaPerEkor} onChange={(e) => setForm({ ...form, hargaPerEkor: e.target.value })} className={inputCls(c)} /></Field>
             <Field label="Metode Pembayaran">
               <select value={form.metodePembayaran} onChange={(e) => setForm({ ...form, metodePembayaran: e.target.value })} className={inputCls(c)}>
                 {METODE_BAYAR.map((m) => <option key={m} value={m}>{m}</option>)}
@@ -1285,9 +1118,7 @@ function SalesPage({ db, setDb, toast }) {
               </select>
             </Field>
             <div className="sm:col-span-2">
-              <Field label="Catatan">
-                <textarea value={form.catatan} onChange={(e) => setForm({ ...form, catatan: e.target.value })} className={inputCls(c)} rows={2} />
-              </Field>
+              <Field label="Catatan"><textarea value={form.catatan} onChange={(e) => setForm({ ...form, catatan: e.target.value })} className={inputCls(c)} rows={2} /></Field>
             </div>
           </div>
           <div className={`rounded-xl px-4 py-3 flex items-center justify-between ${c("bg-cyan-50", "bg-cyan-500/10")}`}>
@@ -1298,33 +1129,18 @@ function SalesPage({ db, setDb, toast }) {
       )}
 
       {deleteTarget && (
-        <ConfirmDialog
-          message={`Yakin ingin menghapus transaksi penjualan ${deleteTarget.fishName} untuk ${deleteTarget.customer}? Stok akan dikembalikan.`}
-          onConfirm={handleDelete}
-          onCancel={() => setDeleteTarget(null)}
-        />
+        <ConfirmDialog message={`Yakin ingin menghapus transaksi penjualan ${deleteTarget.fishName} untuk ${deleteTarget.customer}? Stok akan dikembalikan.`} onConfirm={handleDelete} onCancel={() => setDeleteTarget(null)} />
       )}
     </div>
   );
 }
 
-/* ======================================================================
-   HALAMAN: DATA LOSS
-   ====================================================================== */
-
 const emptyLossForm = {
-  tanggal: todayStr(),
-  fishName: "",
-  batch: "",
-  location: "",
-  jumlahLoss: 1,
-  penyebab: "Tidak Diketahui",
-  ukuran: "",
-  kondisi: "Mati",
-  catatan: "",
+  tanggal: todayStr(), fishName: "", batch: "", location: "",
+  jumlahLoss: 1, penyebab: "Tidak Diketahui", ukuran: "", kondisi: "Mati", catatan: "",
 };
 
-function RankedList({ title, data, dark }) {
+function RankedList({ title, data }) {
   const { c } = useTheme();
   const max = Math.max(1, ...data.map((d) => d.value));
   return (
@@ -1488,19 +1304,13 @@ function LossPage({ db, setDb, toast }) {
           wide
           footer={
             <>
-              <button onClick={() => setModalOpen(false)} className={`px-4 py-2 rounded-lg text-sm font-medium border ${c("border-slate-200 text-slate-600 hover:bg-slate-50", "border-slate-700 text-slate-300 hover:bg-slate-800")}`}>
-                Batal
-              </button>
-              <button onClick={handleSave} className="px-4 py-2 rounded-lg text-sm font-medium bg-red-600 text-white hover:bg-red-700">
-                Simpan
-              </button>
+              <button onClick={() => setModalOpen(false)} className={`px-4 py-2 rounded-lg text-sm font-medium border ${c("border-slate-200 text-slate-600 hover:bg-slate-50", "border-slate-700 text-slate-300 hover:bg-slate-800")}`}>Batal</button>
+              <button onClick={handleSave} className="px-4 py-2 rounded-lg text-sm font-medium bg-red-600 text-white hover:bg-red-700">Simpan</button>
             </>
           }
         >
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4">
-            <Field label="Tanggal" required>
-              <input type="date" value={form.tanggal} onChange={(e) => setForm({ ...form, tanggal: e.target.value })} className={inputCls(c)} />
-            </Field>
+            <Field label="Tanggal" required><input type="date" value={form.tanggal} onChange={(e) => setForm({ ...form, tanggal: e.target.value })} className={inputCls(c)} /></Field>
             <Field label="Nama Ikan" required>
               <input list="fishlist3" value={form.fishName} onChange={(e) => setForm({ ...form, fishName: e.target.value })} className={inputCls(c)} />
               <datalist id="fishlist3">{fishOptions.map((f) => <option key={f} value={f} />)}</datalist>
@@ -1513,45 +1323,31 @@ function LossPage({ db, setDb, toast }) {
               <input list="loclist3" value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} className={inputCls(c)} />
               <datalist id="loclist3">{locOptions.map((f) => <option key={f} value={f} />)}</datalist>
             </Field>
-            <Field label="Jumlah Loss" required>
-              <input type="number" min="1" value={form.jumlahLoss} onChange={(e) => setForm({ ...form, jumlahLoss: e.target.value })} className={inputCls(c)} />
-            </Field>
+            <Field label="Jumlah Loss" required><input type="number" min="1" value={form.jumlahLoss} onChange={(e) => setForm({ ...form, jumlahLoss: e.target.value })} className={inputCls(c)} /></Field>
             <Field label="Penyebab Loss">
               <select value={form.penyebab} onChange={(e) => setForm({ ...form, penyebab: e.target.value })} className={inputCls(c)}>
                 {PENYEBAB_LOSS.map((p) => <option key={p} value={p}>{p}</option>)}
               </select>
             </Field>
-            <Field label="Ukuran Ikan">
-              <input value={form.ukuran} onChange={(e) => setForm({ ...form, ukuran: e.target.value })} className={inputCls(c)} />
-            </Field>
+            <Field label="Ukuran Ikan"><input value={form.ukuran} onChange={(e) => setForm({ ...form, ukuran: e.target.value })} className={inputCls(c)} /></Field>
             <Field label="Kondisi Ikan">
               <select value={form.kondisi} onChange={(e) => setForm({ ...form, kondisi: e.target.value })} className={inputCls(c)}>
                 {KONDISI_OPTIONS.map((k) => <option key={k} value={k}>{k}</option>)}
               </select>
             </Field>
             <div className="sm:col-span-2">
-              <Field label="Catatan">
-                <textarea value={form.catatan} onChange={(e) => setForm({ ...form, catatan: e.target.value })} className={inputCls(c)} rows={2} />
-              </Field>
+              <Field label="Catatan"><textarea value={form.catatan} onChange={(e) => setForm({ ...form, catatan: e.target.value })} className={inputCls(c)} rows={2} /></Field>
             </div>
           </div>
         </Modal>
       )}
 
       {deleteTarget && (
-        <ConfirmDialog
-          message={`Yakin ingin menghapus data loss ${deleteTarget.fishName} batch ${deleteTarget.batch}? Stok akan dikembalikan.`}
-          onConfirm={handleDelete}
-          onCancel={() => setDeleteTarget(null)}
-        />
+        <ConfirmDialog message={`Yakin ingin menghapus data loss ${deleteTarget.fishName} batch ${deleteTarget.batch}? Stok akan dikembalikan.`} onConfirm={handleDelete} onCancel={() => setDeleteTarget(null)} />
       )}
     </div>
   );
 }
-
-/* ======================================================================
-   HALAMAN: INVENTORY
-   ====================================================================== */
 
 function InventoryPage({ db }) {
   const { c } = useTheme();
@@ -1568,9 +1364,6 @@ function InventoryPage({ db }) {
   const filteredData = rows.filter(
     (r) => (!fFish || r.fishName === fFish) && (!fLoc || r.location === fLoc) && (!fStatus || r.status.label === fStatus)
   );
-
-  const rowTint = (color) =>
-    color === "red" ? c("bg-red-50/60", "bg-red-500/5") : color === "yellow" ? c("bg-amber-50/60", "bg-amber-500/5") : "";
 
   const columns = [
     { key: "fishName", label: "Nama Ikan", sortable: true },
@@ -1641,10 +1434,6 @@ function InventoryPage({ db }) {
   );
 }
 
-/* ======================================================================
-   HALAMAN: LAPORAN
-   ====================================================================== */
-
 function LaporanPage({ db, toast }) {
   const { c } = useTheme();
   const [range, setRange] = useState("bulan");
@@ -1700,15 +1489,8 @@ function LaporanPage({ db, toast }) {
     const nilaiStok = keepStock * getAvgPrice(db.sales, fFish || (fishOptions[0] || ""));
 
     return {
-      tanggal: d,
-      tanggalLabel: formatDate(d),
-      stokMasuk,
-      stokKeluar,
-      penjualanEkor,
-      nilaiPenjualan,
-      loss: lossEkor,
-      keepStock,
-      nilaiStok,
+      tanggal: d, tanggalLabel: formatDate(d), stokMasuk, stokKeluar,
+      penjualanEkor, nilaiPenjualan, loss: lossEkor, keepStock, nilaiStok,
     };
   });
 
@@ -1754,7 +1536,7 @@ function LaporanPage({ db, toast }) {
       XLSX.utils.book_append_sheet(wb, ws, "Laporan");
       XLSX.writeFile(wb, `laporan-stok-ikan_${from}_${to}.xlsx`);
       toast("Laporan berhasil diexport ke Excel.");
-    } catch (e) {
+    } catch {
       toast("Gagal export Excel.", "error");
     }
   };
@@ -1781,15 +1563,9 @@ function LaporanPage({ db, toast }) {
         subtitle="Rekap stok masuk, keluar, penjualan, loss, dan nilai stok berdasarkan periode."
         actions={
           <>
-            <button onClick={exportCSV} className={`flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-sm font-medium border ${c("border-slate-200 text-slate-600 hover:bg-slate-50", "border-slate-700 text-slate-300 hover:bg-slate-800")}`}>
-              <Download size={15} /> CSV
-            </button>
-            <button onClick={exportExcel} className={`flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-sm font-medium border ${c("border-slate-200 text-slate-600 hover:bg-slate-50", "border-slate-700 text-slate-300 hover:bg-slate-800")}`}>
-              <Download size={15} /> Excel
-            </button>
-            <button onClick={handlePrint} className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-sm font-medium bg-gradient-to-r from-teal-600 to-cyan-600 text-white hover:opacity-90">
-              <Printer size={15} /> Print
-            </button>
+            <button onClick={exportCSV} className={`flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-sm font-medium border ${c("border-slate-200 text-slate-600 hover:bg-slate-50", "border-slate-700 text-slate-300 hover:bg-slate-800")}`}><Download size={15} /> CSV</button>
+            <button onClick={exportExcel} className={`flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-sm font-medium border ${c("border-slate-200 text-slate-600 hover:bg-slate-50", "border-slate-700 text-slate-300 hover:bg-slate-800")}`}><Download size={15} /> Excel</button>
+            <button onClick={handlePrint} className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-sm font-medium bg-gradient-to-r from-teal-600 to-cyan-600 text-white hover:opacity-90"><Printer size={15} /> Print</button>
           </>
         }
       />
@@ -1825,18 +1601,14 @@ function LaporanPage({ db, toast }) {
           <thead>
             <tr className={c("bg-slate-50", "bg-slate-800/60")}>
               {headers.map((h) => (
-                <th key={h.key} className={`text-left px-3 py-2.5 text-xs font-semibold uppercase whitespace-nowrap ${c("text-slate-500", "text-slate-400")}`}>
-                  {h.label}
-                </th>
+                <th key={h.key} className={`text-left px-3 py-2.5 text-xs font-semibold uppercase whitespace-nowrap ${c("text-slate-500", "text-slate-400")}`}>{h.label}</th>
               ))}
             </tr>
           </thead>
           <tbody>
             {reportRows.length === 0 && (
               <tr>
-                <td colSpan={headers.length}>
-                  <EmptyState text="Tidak ada data pada periode ini." />
-                </td>
+                <td colSpan={headers.length}><EmptyState text="Tidak ada data pada periode ini." /></td>
               </tr>
             )}
             {reportRows.map((r) => (
@@ -1872,8 +1644,66 @@ function LaporanPage({ db, toast }) {
   );
 }
 
+function MasterList({ title, subtitle, field, usedKey, placeholder, db, setDb, toast }) {
+  const { c } = useTheme();
+  const [name, setName] = useState("");
+  const items = db[field];
+
+  const add = () => {
+    const v = name.trim();
+    if (!v) return toast("Nama wajib diisi.", "error");
+    if (items.some((i) => i.toLowerCase() === v.toLowerCase())) return toast("Nama sudah ada.", "error");
+    setDb((prev) => ({ ...prev, [field]: [...prev[field], v] }));
+    setName("");
+    toast(`${v} ditambahkan.`);
+  };
+
+  const remove = (v) => {
+    const used = db.stockRecords.filter((r) => r[usedKey] === v).length;
+    if (used > 0) return toast(`${v} masih dipakai di ${used} data Keep Stock, tidak bisa dihapus.`, "error");
+    setDb((prev) => ({ ...prev, [field]: prev[field].filter((i) => i !== v) }));
+    toast(`${v} dihapus.`);
+  };
+
+  return (
+    <div className={`rounded-2xl border p-4 ${c("bg-white border-slate-200", "bg-slate-900 border-slate-800")}`}>
+      <h3 className={`font-semibold ${c("text-slate-800", "text-slate-100")}`}>{title}</h3>
+      <p className={`text-xs mb-3 ${c("text-slate-500", "text-slate-400")}`}>{subtitle} · Total: {items.length}</p>
+      <div className="flex gap-2 mb-3">
+        <input value={name} onChange={(e) => setName(e.target.value)} onKeyDown={(e) => e.key === "Enter" && add()} placeholder={placeholder} className={inputCls(c)} />
+        <button onClick={add} className="px-3 rounded-lg text-sm font-medium bg-teal-600 text-white hover:bg-teal-700 whitespace-nowrap">
+          <Plus size={16} className="inline -mt-0.5" /> Tambah
+        </button>
+      </div>
+      {items.length === 0 && <EmptyState text="Belum ada data." />}
+      <ul className="divide-y">
+        {items.map((i) => (
+          <li key={i} className="flex items-center justify-between py-2">
+            <span className={`text-sm ${c("text-slate-700", "text-slate-200")}`}>{i}</span>
+            <button onClick={() => remove(i)} className="p-1.5 rounded-lg text-red-600 hover:bg-red-50" title="Hapus">
+              <Trash2 size={15} />
+            </button>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function MasterPage({ db, setDb, toast }) {
+  return (
+    <div>
+      <PageHeader title="Master Data" subtitle="Atur jenis ikan dan jumlah akuarium secara manual." />
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <MasterList title="Jenis Ikan" subtitle="Daftar jenis ikan" field="fishSpecies" usedKey="fishName" placeholder="mis. Pleco L144" db={db} setDb={setDb} toast={toast} />
+        <MasterList title="Akuarium / Lokasi" subtitle="Jumlah akuarium" field="locations" usedKey="location" placeholder="mis. Akuarium A1" db={db} setDb={setDb} toast={toast} />
+      </div>
+    </div>
+  );
+}
+
 /* ======================================================================
-   APP ROOT
+   APP ROOT (Penyimpanan menggunakan localStorage standar browser)
    ====================================================================== */
 
 export default function App() {
@@ -1886,40 +1716,30 @@ export default function App() {
   const { toasts, push, dismiss } = useToast();
 
   useEffect(() => {
-    (async () => {
-      try {
-        const res = await window.storage.get(STORAGE_KEY, false);
-        if (res && res.value) {
-          setDb(JSON.parse(res.value));
-        } else {
-          const seeded = seedDatabase();
-          setDb(seeded);
-          await window.storage.set(STORAGE_KEY, JSON.stringify(seeded), false);
-        }
-      } catch (e) {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        setDb(JSON.parse(saved));
+      } else {
         const seeded = seedDatabase();
         setDb(seeded);
-        try {
-          await window.storage.set(STORAGE_KEY, JSON.stringify(seeded), false);
-        } catch (e2) {
-          /* storage tidak tersedia — tetap jalan di memori */
-        }
-      } finally {
-        setLoading(false);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(seeded));
       }
-    })();
+    } catch {
+      const seeded = seedDatabase();
+      setDb(seeded);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
-  // Persist setiap kali db berubah
   useEffect(() => {
     if (!db) return;
-    (async () => {
-      try {
-        await window.storage.set(STORAGE_KEY, JSON.stringify(db), false);
-      } catch (e) {
-        /* abaikan bila storage gagal, data tetap ada di memori sesi ini */
-      }
-    })();
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(db));
+    } catch {
+      /* fallback bila storage penuh/disabled */
+    }
   }, [db]);
 
   const c = useCallback((light, darkCls) => (dark ? darkCls : light), [dark]);
@@ -1931,9 +1751,7 @@ export default function App() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-50">
         <div className="flex flex-col items-center gap-3">
-          <div className="p-3 rounded-2xl bg-gradient-to-br from-teal-500 to-cyan-500 text-white animate-pulse">
-            <Waves size={24} />
-          </div>
+          <img src={LOGO_SRC} alt={APP_NAME} className="h-16 w-auto animate-pulse" />
           <p className="text-sm text-slate-500">Memuat data...</p>
         </div>
       </div>
@@ -1967,6 +1785,7 @@ export default function App() {
             {active === "loss" && <LossPage db={db} setDb={setDb} toast={push} />}
             {active === "inventory" && <InventoryPage db={db} />}
             {active === "laporan" && <LaporanPage db={db} toast={push} />}
+            {active === "master" && <MasterPage db={db} setDb={setDb} toast={push} />}
           </main>
         </div>
 

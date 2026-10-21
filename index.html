@@ -1,1796 +1,1833 @@
-import React, { useState, useEffect, useMemo, useCallback, createContext, useContext } from "react";
-import {
-  LayoutDashboard, Package, ShoppingCart, AlertTriangle, Boxes, FileBarChart2,
-  Menu, X, Sun, Moon, Search, Plus, Pencil, Trash2, Download, Printer,
-  ArrowUpDown, TrendingDown, Waves, Filter, RotateCcw, ChevronLeft,
-  ChevronRight, CheckCircle2, XCircle, Info, Fish as FishIcon, PackagePlus,
-  PackageMinus, Wallet, Eye, Fish
-} from "lucide-react";
-import {
-  LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
-  Legend, ResponsiveContainer
-} from "recharts";
-import * as XLSX from "xlsx";
-
-/* ======================================================================
-   KONSTANTA & DATA REFERENSI
-   ====================================================================== */
-
-const MENUS = [
-  { key: "dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { key: "keepstock", label: "Keep Stock", icon: Boxes },
-  { key: "sales", label: "Sales / Penjualan", icon: ShoppingCart },
-  { key: "loss", label: "Data Loss", icon: AlertTriangle },
-  { key: "inventory", label: "Inventory", icon: Package },
-  { key: "laporan", label: "Laporan", icon: FileBarChart2 },
-  { key: "master", label: "Master Data", icon: Fish },
-];
-
-const DEFAULT_PRICES = {
-  "Pleco L144": 65000,
-  "Pleco L183": 85000,
-  "Corydoras Panda": 25000,
-  "Endler": 8000,
-  "Tropheus Duboisi": 150000,
-};
-
-const KONDISI_OPTIONS = ["Sehat", "Kurang Sehat", "Karantina", "Lemah", "Sakit"];
-const PENYEBAB_LOSS = ["Penyakit", "Kualitas Air", "Predator", "Stress/Transportasi", "Usia/Alami", "Tidak Diketahui", "Lainnya"];
-const METODE_BAYAR = ["Tunai", "Transfer Bank", "QRIS", "E-Wallet"];
-const STATUS_BAYAR = ["Lunas", "DP", "Belum Lunas"];
-
-const STORAGE_KEY = "ikan_db_v2";
-
-const LOGO_SRC = "data:image/png;base64,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";
-const APP_NAME = "Fadjar Fish Farm";
-
-/* ======================================================================
-   UTILITAS
-   ====================================================================== */
-
-const uid = () => `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 7)}`;
-const todayStr = () => new Date().toISOString().slice(0, 10);
-const daysAgo = (n) => {
-  const d = new Date();
-  d.setDate(d.getDate() - n);
-  return d.toISOString().slice(0, 10);
-};
-
-const formatCurrency = (n) =>
-  new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(n || 0);
-
-const formatNumber = (n) => new Intl.NumberFormat("id-ID").format(n || 0);
-
-const formatDate = (iso) => {
-  if (!iso) return "-";
-  try {
-    return new Date(iso + "T00:00:00").toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" });
-  } catch {
-    return iso;
-  }
-};
-
-const formatDateShort = (iso) => {
-  const d = new Date(iso + "T00:00:00");
-  return `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}`;
-};
-
-const getDistinct = (arr, key) => Array.from(new Set(arr.map((x) => x[key]).filter(Boolean))).sort();
-const clampNum = (v) => {
-  const n = Number(v);
-  return Number.isFinite(n) ? n : 0;
-};
-
-const recalcKeepStock = (r) =>
-  clampNum(r.stokAwal) + clampNum(r.stokMasuk) - clampNum(r.stokKeluar) - clampNum(r.terjual) - clampNum(r.loss);
-
-const withKeepStock = (r) => ({ ...r, keepStock: recalcKeepStock(r) });
-
-const adjustStockForSale = (stockRecords, fishName, batch, deltaJumlah) => {
-  let matched = false;
-  const updated = stockRecords.map((r) => {
-    if (r.fishName === fishName && r.batch === batch) {
-      matched = true;
-      const terjual = Math.max(0, clampNum(r.terjual) + deltaJumlah);
-      return withKeepStock({ ...r, terjual });
-    }
-    return r;
-  });
-  return { stockRecords: updated, matched };
-};
-
-const adjustStockForLoss = (stockRecords, fishName, batch, deltaJumlah) => {
-  let matched = false;
-  const updated = stockRecords.map((r) => {
-    if (r.fishName === fishName && r.batch === batch) {
-      matched = true;
-      const loss = Math.max(0, clampNum(r.loss) + deltaJumlah);
-      return withKeepStock({ ...r, loss });
-    }
-    return r;
-  });
-  return { stockRecords: updated, matched };
-};
-
-const getAvgPrice = (sales, fishName) => {
-  const relevant = sales.filter((s) => s.fishName === fishName);
-  if (relevant.length === 0) return DEFAULT_PRICES[fishName] || 20000;
-  const total = relevant.reduce((a, s) => a + clampNum(s.hargaPerEkor), 0);
-  return Math.round(total / relevant.length);
-};
-
-const getStockStatus = (record) => {
-  const totalMasuk = clampNum(record.stokAwal) + clampNum(record.stokMasuk);
-  const keep = record.keepStock;
-  if (keep <= 0) return { label: "Habis", color: "red" };
-  const pct = totalMasuk > 0 ? keep / totalMasuk : 0;
-  if (pct < 0.2) return { label: "Kritis", color: "red" };
-  if (pct < 0.5) return { label: "Menipis", color: "yellow" };
-  return { label: "Aman", color: "green" };
-};
-
-const lastNDays = (n) => {
-  const out = [];
-  for (let i = n - 1; i >= 0; i--) out.push(daysAgo(i));
-  return out;
-};
-
-const inRange = (dateStr, from, to) => {
-  if (!dateStr) return false;
-  if (from && dateStr < from) return false;
-  if (to && dateStr > to) return false;
-  return true;
-};
-
-const downloadBlob = (content, filename, mime) => {
-  const blob = new Blob([content], { type: mime });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  URL.revokeObjectURL(url);
-};
-
-const toCSV = (rows, headers) => {
-  const escape = (v) => {
-    const s = String(v ?? "");
-    if (s.includes(",") || s.includes('"') || s.includes("\n")) return `"${s.replace(/"/g, '""')}"`;
-    return s;
-  };
-  const lines = [headers.map((h) => escape(h.label)).join(",")];
-  rows.forEach((row) => lines.push(headers.map((h) => escape(row[h.key])).join(",")));
-  return lines.join("\n");
-};
-
-function seedDatabase() {
-  return { fishSpecies: [], locations: [], customers: [], stockRecords: [], sales: [], losses: [] };
-}
-
-/* ======================================================================
-   THEME CONTEXT
-   ====================================================================== */
-
-const ThemeCtx = createContext({ dark: false, c: (l) => l });
-function useTheme() { return useContext(ThemeCtx); }
-
-/* ======================================================================
-   KOMPONEN UI DASAR
-   ====================================================================== */
-
-function ToastStack({ toasts, onDismiss }) {
-  return (
-    <div className="fixed bottom-4 right-4 z-[100] flex flex-col gap-2 w-[calc(100%-2rem)] max-w-sm">
-      {toasts.map((t) => (
-        <div
-          key={t.id}
-          onClick={() => onDismiss(t.id)}
-          className={`cursor-pointer rounded-xl shadow-lg border px-4 py-3 flex items-start gap-2.5 text-sm animate-[fadeIn_0.2s_ease-out] ${
-            t.type === "error"
-              ? "bg-red-50 border-red-200 text-red-800"
-              : t.type === "warning"
-              ? "bg-amber-50 border-amber-200 text-amber-800"
-              : "bg-emerald-50 border-emerald-200 text-emerald-800"
-          }`}
-        >
-          {t.type === "error" ? (
-            <XCircle size={18} className="mt-0.5 shrink-0" />
-          ) : t.type === "warning" ? (
-            <Info size={18} className="mt-0.5 shrink-0" />
-          ) : (
-            <CheckCircle2 size={18} className="mt-0.5 shrink-0" />
-          )}
-          <span className="leading-snug">{t.message}</span>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function useToast() {
-  const [toasts, setToasts] = useState([]);
-  const push = useCallback((message, type = "success") => {
-    const id = uid();
-    setToasts((prev) => [...prev, { id, message, type }]);
-    setTimeout(() => setToasts((prev) => prev.filter((t) => t.id !== id)), 3200);
-  }, []);
-  const dismiss = (id) => setToasts((prev) => prev.filter((t) => t.id !== id));
-  return { toasts, push, dismiss };
-}
-
-function Modal({ title, onClose, children, footer, wide }) {
-  const { c } = useTheme();
-  return (
-    <div className="fixed inset-0 z-50 overflow-y-auto">
-      <div className="fixed inset-0 bg-black/50" onClick={onClose} />
-      <div className="relative flex min-h-full items-start sm:items-center justify-center p-2 sm:p-4">
-        <div className={`relative w-full ${wide ? "sm:max-w-2xl" : "sm:max-w-lg"} flex flex-col rounded-2xl shadow-2xl ${c("bg-white", "bg-slate-900")} border ${c("border-slate-200", "border-slate-700")}`}>
-          <div className={`flex items-center justify-between px-5 py-4 border-b ${c("border-slate-100", "border-slate-800")}`}>
-            <h3 className={`font-semibold text-base ${c("text-slate-800", "text-slate-100")}`}>{title}</h3>
-            <button onClick={onClose} className={`p-1.5 rounded-lg ${c("hover:bg-slate-100", "hover:bg-slate-800")}`}>
-              <X size={18} className={c("text-slate-500", "text-slate-400")} />
-            </button>
-          </div>
-          <div className="px-5 py-4">{children}</div>
-          {footer && <div className={`px-5 py-3 border-t ${c("border-slate-100", "border-slate-800")} flex justify-end gap-2`}>{footer}</div>}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function ConfirmDialog({ message, onConfirm, onCancel }) {
-  const { c } = useTheme();
-  return (
-    <Modal
-      title="Konfirmasi Hapus"
-      onClose={onCancel}
-      footer={
-        <>
-          <button onClick={onCancel} className={`px-4 py-2 rounded-lg text-sm font-medium border ${c("border-slate-200 text-slate-600 hover:bg-slate-50", "border-slate-700 text-slate-300 hover:bg-slate-800")}`}>
-            Batal
-          </button>
-          <button onClick={onConfirm} className="px-4 py-2 rounded-lg text-sm font-medium bg-red-600 text-white hover:bg-red-700">
-            Ya, Hapus
-          </button>
-        </>
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fadjar Fish Farm - Monitoring Stok</title>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Import Map untuk memuat React, Lucide, Recharts, dan XLSX langsung di browser -->
+  <script type="importmap">
+    {
+      "imports": {
+        "react": "https://esm.sh/react@18.2.0",
+        "react-dom/client": "https://esm.sh/react-dom@18.2.0/client",
+        "lucide-react": "https://esm.sh/lucide-react@0.263.1",
+        "recharts": "https://esm.sh/recharts@2.12.0",
+        "xlsx": "https://esm.sh/xlsx@0.18.5"
       }
-    >
-      <p className={c("text-slate-600", "text-slate-300")}>{message}</p>
-    </Modal>
-  );
-}
-
-function Badge({ children, color = "slate" }) {
-  const map = {
-    green: "bg-emerald-100 text-emerald-700",
-    yellow: "bg-amber-100 text-amber-700",
-    red: "bg-red-100 text-red-700",
-    slate: "bg-slate-100 text-slate-600",
-    teal: "bg-teal-100 text-teal-700",
-    cyan: "bg-cyan-100 text-cyan-700",
-  };
-  return <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium whitespace-nowrap ${map[color] || map.slate}`}>{children}</span>;
-}
-
-function Field({ label, required, children, hint }) {
-  const { c } = useTheme();
-  return (
-    <label className="block mb-3">
-      <span className={`block text-xs font-medium mb-1 ${c("text-slate-600", "text-slate-300")}`}>
-        {label} {required && <span className="text-red-500">*</span>}
-      </span>
-      {children}
-      {hint && <span className={`block text-[11px] mt-1 ${c("text-slate-400", "text-slate-500")}`}>{hint}</span>}
-    </label>
-  );
-}
-
-function inputCls(c) {
-  return `w-full rounded-lg border px-3 py-2 text-sm outline-none transition focus:ring-2 focus:ring-teal-500/40 focus:border-teal-500 ${c(
-    "bg-white border-slate-200 text-slate-800 placeholder:text-slate-400",
-    "bg-slate-800 border-slate-700 text-slate-100 placeholder:text-slate-500"
-  )}`;
-}
-
-function StatCard({ icon: Icon, label, value, sub, accent }) {
-  const { c } = useTheme();
-  const accents = {
-    teal: c("bg-teal-50 text-teal-600", "bg-teal-500/10 text-teal-400"),
-    cyan: c("bg-cyan-50 text-cyan-600", "bg-cyan-500/10 text-cyan-400"),
-    amber: c("bg-amber-50 text-amber-600", "bg-amber-500/10 text-amber-400"),
-    red: c("bg-red-50 text-red-600", "bg-red-500/10 text-red-400"),
-    emerald: c("bg-emerald-50 text-emerald-600", "bg-emerald-500/10 text-emerald-400"),
-    slate: c("bg-slate-100 text-slate-600", "bg-slate-500/10 text-slate-400"),
-  };
-  return (
-    <div className={`rounded-2xl border p-4 ${c("bg-white border-slate-200", "bg-slate-900 border-slate-800")}`}>
-      <div className="flex items-start justify-between">
-        <div>
-          <p className={`text-xs font-medium ${c("text-slate-50", "text-slate-400")}`}>{label}</p>
-          <p className={`text-xl font-bold mt-1 ${c("text-slate-800", "text-slate-100")}`}>{value}</p>
-          {sub && <p className={`text-[11px] mt-1 ${c("text-slate-400", "text-slate-500")}`}>{sub}</p>}
-        </div>
-        <div className={`p-2 rounded-xl ${accents[accent] || accents.teal}`}>
-          <Icon size={18} />
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function WaveDivider() {
-  return (
-    <svg viewBox="0 0 200 10" preserveAspectRatio="none" className="w-full h-2 mt-2">
-      <path d="M0 5 Q 10 0, 20 5 T 40 5 T 60 5 T 80 5 T 100 5 T 120 5 T 140 5 T 160 5 T 180 5 T 200 5" fill="none" stroke="url(#waveGrad)" strokeWidth="2" />
-      <defs>
-        <linearGradient id="waveGrad" x1="0" y1="0" x2="1" y2="0">
-          <stop offset="0%" stopColor="#0d9488" />
-          <stop offset="100%" stopColor="#22d3ee" />
-        </linearGradient>
-      </defs>
-    </svg>
-  );
-}
-
-function PageHeader({ title, subtitle, actions }) {
-  const { c } = useTheme();
-  return (
-    <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
-      <div>
-        <h2 className={`text-lg sm:text-xl font-bold ${c("text-slate-800", "text-slate-100")}`}>{title}</h2>
-        {subtitle && <p className={`text-sm mt-0.5 ${c("text-slate-500", "text-slate-400")}`}>{subtitle}</p>}
-        <WaveDivider />
-      </div>
-      {actions && <div className="flex gap-2 flex-wrap">{actions}</div>}
-    </div>
-  );
-}
-
-function EmptyState({ text }) {
-  const { c } = useTheme();
-  return (
-    <div className={`text-center py-10 text-sm ${c("text-slate-400", "text-slate-500")}`}>
-      <FishIcon size={28} className="mx-auto mb-2 opacity-40" />
-      {text}
-    </div>
-  );
-}
-
-function DataTable({ columns, data, searchKeys = [], pageSize = 8, onEdit, onDelete, onView, filters, emptyText = "Belum ada data." }) {
-  const { c } = useTheme();
-  const [query, setQuery] = useState("");
-  const [sortKey, setSortKey] = useState(null);
-  const [sortDir, setSortDir] = useState("asc");
-  const [page, setPage] = useState(0);
-
-  useEffect(() => setPage(0), [query, data.length]);
-
-  const filtered = useMemo(() => {
-    if (!query || searchKeys.length === 0) return data;
-    const q = query.toLowerCase();
-    return data.filter((row) => searchKeys.some((k) => String(row[k] ?? "").toLowerCase().includes(q)));
-  }, [data, query, searchKeys]);
-
-  const sorted = useMemo(() => {
-    if (!sortKey) return filtered;
-    return [...filtered].sort((a, b) => {
-      const av = a[sortKey], bv = b[sortKey];
-      if (typeof av === "number" && typeof bv === "number") return sortDir === "asc" ? av - bv : bv - av;
-      return sortDir === "asc" ? String(av ?? "").localeCompare(String(bv ?? "")) : String(bv ?? "").localeCompare(String(av ?? ""));
-    });
-  }, [filtered, sortKey, sortDir]);
-
-  const totalPages = Math.max(1, Math.ceil(sorted.length / pageSize));
-  const paged = sorted.slice(page * pageSize, (page + 1) * pageSize);
-
-  const toggleSort = (key) => {
-    if (sortKey === key) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
-    else {
-      setSortKey(key);
-      setSortDir("asc");
     }
-  };
+  </script>
+  
+  <!-- Babel Standalone untuk membaca syntax JSX di browser -->
+  <script src="https://unpkg.com/@babel/standalone@7.23.6/babel.min.js"></script>
+</head>
+<body class="bg-slate-50 text-slate-800">
+  <div id="root"></div>
 
-  return (
-    <div className={`rounded-2xl border ${c("bg-white border-slate-200", "bg-slate-900 border-slate-800")}`}>
-      <div className={`flex flex-wrap items-center gap-2 p-3 border-b ${c("border-slate-100", "border-slate-800")}`}>
-        {searchKeys.length > 0 && (
-          <div className="relative flex-1 min-w-[160px]">
-            <Search size={15} className={`absolute left-2.5 top-1/2 -translate-y-1/2 ${c("text-slate-400", "text-slate-500")}`} />
-            <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Cari data..." className={`${inputCls(c)} pl-8 py-1.5`} />
-          </div>
-        )}
-        {filters}
-      </div>
+  <script type="text/babel" data-type="module">
+    import React, { useState, useEffect, useMemo, useCallback, createContext, useContext } from "react";
+    import { createRoot } from "react-dom/client";
+    import {
+      LayoutDashboard, Package, ShoppingCart, AlertTriangle, Boxes, FileBarChart2,
+      Menu, X, Sun, Moon, Search, Plus, Pencil, Trash2, Download, Printer,
+      ArrowUpDown, TrendingDown, Waves, Filter, RotateCcw, ChevronLeft,
+      ChevronRight, CheckCircle2, XCircle, Info, Fish as FishIcon, PackagePlus,
+      PackageMinus, Wallet, Eye, Fish
+    } from "lucide-react";
+    import {
+      LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
+      Legend, ResponsiveContainer
+    } from "recharts";
+    import * as XLSX from "xlsx";
 
-      <div className="overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className={c("bg-slate-50", "bg-slate-800/60")}>
-              {columns.map((col) => (
-                <th
-                  key={col.key}
-                  onClick={() => col.sortable && toggleSort(col.key)}
-                  className={`text-left px-3 py-2.5 font-semibold text-xs uppercase tracking-wide whitespace-nowrap ${c("text-slate-500", "text-slate-400")} ${
-                    col.sortable ? "cursor-pointer select-none" : ""
-                  }`}
-                >
-                  <span className="inline-flex items-center gap-1">
-                    {col.label}
-                    {col.sortable && <ArrowUpDown size={11} className="opacity-50" />}
-                  </span>
-                </th>
-              ))}
-              {(onEdit || onDelete || onView) && <th className={`px-3 py-2.5 text-xs font-semibold uppercase ${c("text-slate-500", "text-slate-400")}`}>Aksi</th>}
-            </tr>
-          </thead>
-          <tbody>
-            {paged.length === 0 && (
-              <tr>
-                <td colSpan={columns.length + 1}>
-                  <EmptyState text={emptyText} />
-                </td>
-              </tr>
-            )}
-            {paged.map((row, idx) => (
-              <tr key={row.id ?? idx} className={`border-t ${c("border-slate-100 hover:bg-slate-50", "border-slate-800 hover:bg-slate-800/40")} transition-colors`}>
-                {columns.map((col) => (
-                  <td key={col.key} className={`px-3 py-2.5 whitespace-nowrap ${c("text-slate-700", "text-slate-200")}`}>
-                    {col.render ? col.render(row) : row[col.key]}
-                  </td>
-                ))}
-                {(onEdit || onDelete || onView) && (
-                  <td className="px-3 py-2.5">
-                    <div className="flex items-center gap-1">
-                      {onView && (
-                        <button onClick={() => onView(row)} className={`p-1.5 rounded-lg ${c("hover:bg-slate-100 text-slate-500", "hover:bg-slate-800 text-slate-400")}`} title="Lihat detail">
-                          <Eye size={15} />
-                        </button>
-                      )}
-                      {onEdit && (
-                        <button onClick={() => onEdit(row)} className={`p-1.5 rounded-lg ${c("hover:bg-teal-50 text-teal-600", "hover:bg-teal-500/10 text-teal-400")}`} title="Edit">
-                          <Pencil size={15} />
-                        </button>
-                      )}
-                      {onDelete && (
-                        <button onClick={() => onDelete(row)} className={`p-1.5 rounded-lg ${c("hover:bg-red-50 text-red-500", "hover:bg-red-500/10 text-red-400")}`} title="Hapus">
-                          <Trash2 size={15} />
-                        </button>
-                      )}
-                    </div>
-                  </td>
-                )}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+    /* ======================================================================
+       KONSTANTA & DATA REFERENSI
+       ====================================================================== */
 
-      {sorted.length > 0 && (
-        <div className={`flex items-center justify-between px-3 py-2.5 border-t text-xs ${c("border-slate-100 text-slate-500", "border-slate-800 text-slate-400")}`}>
-          <span>
-            Menampilkan {page * pageSize + 1}-{Math.min((page + 1) * pageSize, sorted.length)} dari {sorted.length} data
-          </span>
-          <div className="flex items-center gap-1">
-            <button disabled={page === 0} onClick={() => setPage((p) => p - 1)} className={`p-1 rounded-md disabled:opacity-30 ${c("hover:bg-slate-100", "hover:bg-slate-800")}`}>
-              <ChevronLeft size={16} />
-            </button>
-            <span>{page + 1} / {totalPages}</span>
-            <button disabled={page >= totalPages - 1} onClick={() => setPage((p) => p + 1)} className={`p-1 rounded-md disabled:opacity-30 ${c("hover:bg-slate-100", "hover:bg-slate-800")}`}>
-              <ChevronRight size={16} />
-            </button>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-function SelectFilter({ value, onChange, options, placeholder }) {
-  const { c } = useTheme();
-  return (
-    <select value={value} onChange={(e) => onChange(e.target.value)} className={`${inputCls(c)} py-1.5 w-auto min-w-[120px]`}>
-      <option value="">{placeholder}</option>
-      {options.map((o) => (
-        <option key={o} value={o}>{o}</option>
-      ))}
-    </select>
-  );
-}
-
-/* ======================================================================
-   SIDEBAR & TOPBAR
-   ====================================================================== */
-
-function Sidebar({ active, onSelect, mobileOpen, setMobileOpen, collapsed, setCollapsed }) {
-  const { dark, c } = useTheme();
-  return (
-    <>
-      {mobileOpen && <div className="fixed inset-0 bg-black/50 z-40 lg:hidden" onClick={() => setMobileOpen(false)} />}
-      <aside className={`fixed z-50 lg:z-30 top-0 left-0 h-full flex flex-col transition-all duration-200 ${collapsed ? "lg:w-[76px]" : "lg:w-64"} w-64 ${mobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"} border-r ${c("bg-white border-slate-200", "bg-slate-900 border-slate-800")}`}>
-        <div className={`flex items-center gap-2.5 px-4 h-16 border-b shrink-0 ${c("border-slate-100", "border-slate-800")}`}>
-          <img src={LOGO_SRC} alt={APP_NAME} className="h-9 w-auto shrink-0" style={{ filter: dark ? "invert(1)" : "none" }} />
-          {!collapsed && (
-            <div className="min-w-0">
-              <p className={`font-bold text-sm leading-tight truncate ${c("text-slate-800", "text-slate-100")}`}>{APP_NAME}</p>
-              <p className={`text-[11px] leading-tight ${c("text-slate-400", "text-slate-500")}`}>Monitoring Stok Ikan</p>
-            </div>
-          )}
-          <button className="ml-auto lg:hidden p-1" onClick={() => setMobileOpen(false)}>
-            <X size={18} className={c("text-slate-500", "text-slate-400")} />
-          </button>
-        </div>
-
-        <nav className="flex-1 overflow-y-auto py-3 px-2.5 space-y-1">
-          {MENUS.map((m) => {
-            const Icon = m.icon;
-            const isActive = active === m.key;
-            return (
-              <button
-                key={m.key}
-                onClick={() => { onSelect(m.key); setMobileOpen(false); }}
-                title={collapsed ? m.label : undefined}
-                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors ${
-                  isActive ? "bg-gradient-to-r from-teal-600 to-cyan-600 text-white shadow-sm shadow-teal-600/20" : c("text-slate-600 hover:bg-slate-100", "text-slate-300 hover:bg-slate-800")
-                } ${collapsed ? "justify-center" : ""}`}
-              >
-                <Icon size={18} className="shrink-0" />
-                {!collapsed && <span className="truncate">{m.label}</span>}
-              </button>
-            );
-          })}
-        </nav>
-
-        <div className={`hidden lg:flex p-2.5 border-t ${c("border-slate-100", "border-slate-800")}`}>
-          <button onClick={() => setCollapsed((v) => !v)} className={`w-full flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-medium ${c("text-slate-500 hover:bg-slate-100", "text-slate-400 hover:bg-slate-800")}`}>
-            {collapsed ? <ChevronRight size={15} /> : <><ChevronLeft size={15} /> Ciutkan</>}
-          </button>
-        </div>
-      </aside>
-    </>
-  );
-}
-
-function Topbar({ title, setMobileOpen, dark, setDark }) {
-  const { c } = useTheme();
-  return (
-    <header className={`sticky top-0 z-20 h-16 flex items-center gap-3 px-4 sm:px-6 border-b backdrop-blur ${c("bg-white/90 border-slate-200", "bg-slate-900/90 border-slate-800")}`}>
-      <button onClick={() => setMobileOpen(true)} className={`lg:hidden p-2 rounded-lg ${c("hover:bg-slate-100", "hover:bg-slate-800")}`}>
-        <Menu size={20} className={c("text-slate-600", "text-slate-300")} />
-      </button>
-      <h1 className={`font-semibold text-base sm:text-lg ${c("text-slate-800", "text-slate-100")}`}>{title}</h1>
-      <div className="ml-auto flex items-center gap-2">
-        <button onClick={() => setDark((v) => !v)} className={`p-2 rounded-lg border ${c("border-slate-200 hover:bg-slate-100 text-slate-500", "border-slate-700 hover:bg-slate-800 text-slate-300")}`} title="Ganti tema">
-          {dark ? <Sun size={17} /> : <Moon size={17} />}
-        </button>
-        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-teal-500 to-cyan-500 text-white flex items-center justify-center text-xs font-bold shrink-0">FFF</div>
-      </div>
-    </header>
-  );
-}
-
-/* ======================================================================
-   PAGES
-   ====================================================================== */
-
-function DashboardPage({ db }) {
-  const { c } = useTheme();
-  const { stockRecords, sales, losses } = db;
-
-  const totalKeepStock = stockRecords.reduce((a, r) => a + Math.max(0, r.keepStock), 0);
-  const totalPenjualanRp = sales.reduce((a, s) => a + s.total, 0);
-  const totalTerjualEkor = sales.reduce((a, s) => a + s.jumlah, 0);
-  const totalLossEkor = losses.reduce((a, l) => a + l.jumlahLoss, 0);
-  const totalStokMasuk = stockRecords.reduce((a, r) => a + clampNum(r.stokMasuk), 0);
-  const totalStokKeluar = stockRecords.reduce((a, r) => a + clampNum(r.stokKeluar), 0) + totalTerjualEkor + totalLossEkor;
-  const estimasiNilaiStok = stockRecords.reduce((a, r) => a + Math.max(0, r.keepStock) * getAvgPrice(sales, r.fishName), 0);
-
-  const days = lastNDays(14);
-
-  const keepStockTrend = useMemo(() => {
-    return days.map((d) => {
-      const masukKum = stockRecords.filter((r) => r.tanggal <= d).reduce((a, r) => a + r.stokAwal + r.stokMasuk, 0);
-      const keluarKum =
-        stockRecords.filter((r) => r.tanggal <= d).reduce((a, r) => a + clampNum(r.stokKeluar), 0) +
-        sales.filter((s) => s.tanggal <= d).reduce((a, s) => a + s.jumlah, 0) +
-        losses.filter((l) => l.tanggal <= d).reduce((a, l) => a + l.jumlahLoss, 0);
-      return { tanggal: formatDateShort(d), total: Math.max(0, masukKum - keluarKum) };
-    });
-  }, [stockRecords, sales, losses]);
-
-  const salesTrend = days.map((d) => ({
-    tanggal: formatDateShort(d),
-    penjualan: sales.filter((s) => s.tanggal === d).reduce((a, s) => a + s.total, 0),
-  }));
-
-  const lossTrend = days.map((d) => ({
-    tanggal: formatDateShort(d),
-    loss: losses.filter((l) => l.tanggal === d).reduce((a, l) => a + l.jumlahLoss, 0),
-  }));
-
-  const flowTrend = days.map((d) => ({
-    tanggal: formatDateShort(d),
-    masuk: stockRecords.filter((r) => r.tanggal === d).reduce((a, r) => a + clampNum(r.stokMasuk), 0),
-    keluar:
-      stockRecords.filter((r) => r.tanggal === d).reduce((a, r) => a + clampNum(r.stokKeluar), 0) +
-      sales.filter((s) => s.tanggal === d).reduce((a, s) => a + s.jumlah, 0) +
-      losses.filter((l) => l.tanggal === d).reduce((a, l) => a + l.jumlahLoss, 0),
-  }));
-
-  const activity = useMemo(() => {
-    const items = [
-      ...sales.map((s) => ({
-        id: "S" + s.id, createdAt: s.createdAt, tanggal: s.tanggal, type: "Penjualan", color: "cyan",
-        desc: `Penjualan ${s.jumlah} ekor ${s.fishName} (${s.batch}) ke ${s.customer} — ${formatCurrency(s.total)}`,
-      })),
-      ...losses.map((l) => ({
-        id: "L" + l.id, createdAt: l.createdAt, tanggal: l.tanggal, type: "Loss", color: "red",
-        desc: `Loss ${l.jumlahLoss} ekor ${l.fishName} (${l.batch}) — ${l.penyebab}`,
-      })),
-      ...stockRecords.map((r) => ({
-        id: "R" + r.id, createdAt: r.createdAt, tanggal: r.tanggal, type: "Keep Stock", color: "teal",
-        desc: `Update stok ${r.fishName} (${r.batch}) di ${r.location} — Keep Stock: ${formatNumber(r.keepStock)} ekor`,
-      })),
+    const MENUS = [
+      { key: "dashboard", label: "Dashboard", icon: LayoutDashboard },
+      { key: "keepstock", label: "Keep Stock", icon: Boxes },
+      { key: "sales", label: "Sales / Penjualan", icon: ShoppingCart },
+      { key: "loss", label: "Data Loss", icon: AlertTriangle },
+      { key: "inventory", label: "Inventory", icon: Package },
+      { key: "laporan", label: "Laporan", icon: FileBarChart2 },
+      { key: "master", label: "Master Data", icon: Fish },
     ];
-    return items.sort((a, b) => b.createdAt - a.createdAt).slice(0, 8);
-  }, [sales, losses, stockRecords]);
 
-  const gridStroke = c("#e2e8f0", "#334155");
-  const axisColor = c("#64748b", "#94a3b8");
-
-  return (
-    <div>
-      <PageHeader title="Dashboard" subtitle="Ringkasan kondisi stok dan penjualan ikan hias secara real-time." />
-
-      <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3 mb-6">
-        <StatCard icon={Boxes} label="Total Keep Stock" value={`${formatNumber(totalKeepStock)} ekor`} accent="teal" />
-        <StatCard icon={ShoppingCart} label="Total Penjualan" value={formatCurrency(totalPenjualanRp)} sub={`${formatNumber(totalTerjualEkor)} ekor terjual`} accent="cyan" />
-        <StatCard icon={AlertTriangle} label="Total Loss / Kematian" value={`${formatNumber(totalLossEkor)} ekor`} accent="red" />
-        <StatCard icon={PackagePlus} label="Total Stok Masuk" value={`${formatNumber(totalStokMasuk)} ekor`} accent="emerald" />
-        <StatCard icon={PackageMinus} label="Total Stok Keluar" value={`${formatNumber(totalStokKeluar)} ekor`} accent="amber" />
-        <StatCard icon={Wallet} label="Estimasi Nilai Stok" value={formatCurrency(estimasiNilaiStok)} accent="slate" />
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
-        <div className={`rounded-2xl border p-4 ${c("bg-white border-slate-200", "bg-slate-900 border-slate-800")}`}>
-          <p className={`text-sm font-semibold mb-3 ${c("text-slate-700", "text-slate-200")}`}>Perkembangan Keep Stock (14 hari)</p>
-          <ResponsiveContainer width="100%" height={220}>
-            <LineChart data={keepStockTrend}>
-              <CartesianGrid strokeDasharray="3 3" stroke={gridStroke} />
-              <XAxis dataKey="tanggal" tick={{ fontSize: 11, fill: axisColor }} />
-              <YAxis tick={{ fontSize: 11, fill: axisColor }} />
-              <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8 }} formatter={(v) => [`${formatNumber(v)} ekor`, "Keep Stock"]} />
-              <Line type="monotone" dataKey="total" stroke="#0d9488" strokeWidth={2.5} dot={false} />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
-
-        <div className={`rounded-2xl border p-4 ${c("bg-white border-slate-200", "bg-slate-900 border-slate-800")}`}>
-          <p className={`text-sm font-semibold mb-3 ${c("text-slate-700", "text-slate-200")}`}>Grafik Penjualan (14 hari)</p>
-          <ResponsiveContainer width="100%" height={220}>
-            <BarChart data={salesTrend}>
-              <CartesianGrid strokeDasharray="3 3" stroke={gridStroke} />
-              <XAxis dataKey="tanggal" tick={{ fontSize: 11, fill: axisColor }} />
-              <YAxis tick={{ fontSize: 11, fill: axisColor }} tickFormatter={(v) => `${v / 1000}k`} />
-              <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8 }} formatter={(v) => [formatCurrency(v), "Penjualan"]} />
-              <Bar dataKey="penjualan" fill="#06b6d4" radius={[4, 4, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-
-        <div className={`rounded-2xl border p-4 ${c("bg-white border-slate-200", "bg-slate-900 border-slate-800")}`}>
-          <p className={`text-sm font-semibold mb-3 ${c("text-slate-700", "text-slate-200")}`}>Grafik Loss (14 hari)</p>
-          <ResponsiveContainer width="100%" height={220}>
-            <BarChart data={lossTrend}>
-              <CartesianGrid strokeDasharray="3 3" stroke={gridStroke} />
-              <XAxis dataKey="tanggal" tick={{ fontSize: 11, fill: axisColor }} />
-              <YAxis tick={{ fontSize: 11, fill: axisColor }} />
-              <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8 }} formatter={(v) => [`${formatNumber(v)} ekor`, "Loss"]} />
-              <Bar dataKey="loss" fill="#ef4444" radius={[4, 4, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-
-        <div className={`rounded-2xl border p-4 ${c("bg-white border-slate-200", "bg-slate-900 border-slate-800")}`}>
-          <p className={`text-sm font-semibold mb-3 ${c("text-slate-700", "text-slate-200")}`}>Stok Masuk vs Keluar (14 hari)</p>
-          <ResponsiveContainer width="100%" height={220}>
-            <BarChart data={flowTrend}>
-              <CartesianGrid strokeDasharray="3 3" stroke={gridStroke} />
-              <XAxis dataKey="tanggal" tick={{ fontSize: 11, fill: axisColor }} />
-              <YAxis tick={{ fontSize: 11, fill: axisColor }} />
-              <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8 }} />
-              <Legend wrapperStyle={{ fontSize: 11 }} />
-              <Bar dataKey="masuk" name="Stok Masuk" fill="#14b8a6" radius={[4, 4, 0, 0]} />
-              <Bar dataKey="keluar" name="Stok Keluar" fill="#f59e0b" radius={[4, 4, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-      </div>
-
-      <div className={`rounded-2xl border ${c("bg-white border-slate-200", "bg-slate-900 border-slate-800")}`}>
-        <div className={`px-4 py-3 border-b ${c("border-slate-100", "border-slate-800")}`}>
-          <p className={`text-sm font-semibold ${c("text-slate-700", "text-slate-200")}`}>Aktivitas Terbaru</p>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <tbody>
-              {activity.length === 0 && (
-                <tr>
-                  <td><EmptyState text="Belum ada aktivitas." /></td>
-                </tr>
-              )}
-              {activity.map((a) => (
-                <tr key={a.id} className={`border-t ${c("border-slate-100", "border-slate-800")}`}>
-                  <td className="px-4 py-2.5 w-28 whitespace-nowrap"><Badge color={a.color}>{a.type}</Badge></td>
-                  <td className={`px-4 py-2.5 ${c("text-slate-600", "text-slate-300")}`}>{a.desc}</td>
-                  <td className={`px-4 py-2.5 text-right w-32 whitespace-nowrap ${c("text-slate-400", "text-slate-500")}`}>{formatDate(a.tanggal)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-const emptyStockForm = {
-  tanggal: todayStr(), fishName: "", batch: "", location: "", stokAwal: 0,
-  stokMasuk: 0, stokKeluar: 0, terjual: 0, loss: 0, ukuran: "", kondisi: "Sehat", catatan: "",
-};
-
-function KeepStockPage({ db, setDb, toast }) {
-  const { c } = useTheme();
-  const [modalOpen, setModalOpen] = useState(false);
-  const [form, setForm] = useState(emptyStockForm);
-  const [editingId, setEditingId] = useState(null);
-  const [deleteTarget, setDeleteTarget] = useState(null);
-  const [fFish, setFFish] = useState("");
-  const [fBatch, setFBatch] = useState("");
-  const [fLoc, setFLoc] = useState("");
-  const [fFrom, setFFrom] = useState("");
-  const [fTo, setFTo] = useState("");
-
-  const fishOptions = getDistinct(db.stockRecords, "fishName").concat(db.fishSpecies).filter((v, i, a) => a.indexOf(v) === i).sort();
-  const batchOptions = getDistinct(db.stockRecords, "batch");
-  const locOptions = getDistinct(db.stockRecords, "location").concat(db.locations).filter((v, i, a) => a.indexOf(v) === i).sort();
-
-  const filteredData = db.stockRecords.filter(
-    (r) =>
-      (!fFish || r.fishName === fFish) &&
-      (!fBatch || r.batch === fBatch) &&
-      (!fLoc || r.location === fLoc) &&
-      inRange(r.tanggal, fFrom, fTo)
-  );
-
-  const openCreate = () => { setEditingId(null); setForm(emptyStockForm); setModalOpen(true); };
-  const openEdit = (row) => { setEditingId(row.id); setForm({ ...row }); setModalOpen(true); };
-
-  const handleSave = () => {
-    if (!form.tanggal || !form.fishName || !form.batch || !form.location) {
-      toast("Tanggal, Nama Ikan, Batch, dan Lokasi wajib diisi.", "error");
-      return;
-    }
-    const cleaned = {
-      ...form,
-      stokAwal: clampNum(form.stokAwal),
-      stokMasuk: clampNum(form.stokMasuk),
-      stokKeluar: clampNum(form.stokKeluar),
-      terjual: clampNum(form.terjual),
-      loss: clampNum(form.loss),
+    const DEFAULT_PRICES = {
+      "Pleco L144": 65000,
+      "Pleco L183": 85000,
+      "Corydoras Panda": 25000,
+      "Endler": 8000,
+      "Tropheus Duboisi": 150000,
     };
-    const withKS = withKeepStock(cleaned);
 
-    setDb((prev) => {
-      let stockRecords;
-      if (editingId) {
-        stockRecords = prev.stockRecords.map((r) => (r.id === editingId ? { ...r, ...withKS } : r));
-      } else {
-        stockRecords = [...prev.stockRecords, { ...withKS, id: uid(), createdAt: Date.now() }];
+    const KONDISI_OPTIONS = ["Sehat", "Kurang Sehat", "Karantina", "Lemah", "Sakit"];
+    const PENYEBAB_LOSS = ["Penyakit", "Kualitas Air", "Predator", "Stress/Transportasi", "Usia/Alami", "Tidak Diketahui", "Lainnya"];
+    const METODE_BAYAR = ["Tunai", "Transfer Bank", "QRIS", "E-Wallet"];
+    const STATUS_BAYAR = ["Lunas", "DP", "Belum Lunas"];
+
+    const STORAGE_KEY = "ikan_db_v2";
+
+    const LOGO_SRC = "data:image/png;base64,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";
+    const APP_NAME = "Fadjar Fish Farm";
+
+    /* ======================================================================
+       UTILITAS & HELPER
+       ====================================================================== */
+
+    const uid = () => `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 7)}`;
+    const todayStr = () => new Date().toISOString().slice(0, 10);
+    const daysAgo = (n) => {
+      const d = new Date();
+      d.setDate(d.getDate() - n);
+      return d.toISOString().slice(0, 10);
+    };
+
+    const formatCurrency = (n) =>
+      new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(n || 0);
+
+    const formatNumber = (n) => new Intl.NumberFormat("id-ID").format(n || 0);
+
+    const formatDate = (iso) => {
+      if (!iso) return "-";
+      try {
+        return new Date(iso + "T00:00:00").toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" });
+      } catch {
+        return iso;
       }
-      const fishSpecies = prev.fishSpecies.includes(withKS.fishName) ? prev.fishSpecies : [...prev.fishSpecies, withKS.fishName];
-      const locations = prev.locations.includes(withKS.location) ? prev.locations : [...prev.locations, withKS.location];
-      return { ...prev, stockRecords, fishSpecies, locations };
-    });
-    toast(editingId ? "Data Keep Stock berhasil diperbarui." : "Data Keep Stock berhasil ditambahkan.");
-    setModalOpen(false);
-  };
+    };
 
-  const quickAdjust = (row, delta) => {
-    const next = { ...row, stokMasuk: Math.max(0, clampNum(row.stokMasuk) + delta) };
-    if (recalcKeepStock(next) < 0) {
-      toast("Stok tidak boleh negatif.", "error");
-      return;
+    const formatDateShort = (iso) => {
+      const d = new Date(iso + "T00:00:00");
+      return `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}`;
+    };
+
+    const getDistinct = (arr, key) => Array.from(new Set(arr.map((x) => x[key]).filter(Boolean))).sort();
+    const clampNum = (v) => {
+      const n = Number(v);
+      return Number.isFinite(n) ? n : 0;
+    };
+
+    const recalcKeepStock = (r) =>
+      clampNum(r.stokAwal) + clampNum(r.stokMasuk) - clampNum(r.stokKeluar) - clampNum(r.terjual) - clampNum(r.loss);
+
+    const withKeepStock = (r) => ({ ...r, keepStock: recalcKeepStock(r) });
+
+    const adjustStockForSale = (stockRecords, fishName, batch, deltaJumlah) => {
+      let matched = false;
+      const updated = stockRecords.map((r) => {
+        if (r.fishName === fishName && r.batch === batch) {
+          matched = true;
+          const terjual = Math.max(0, clampNum(r.terjual) + deltaJumlah);
+          return withKeepStock({ ...r, terjual });
+        }
+        return r;
+      });
+      return { stockRecords: updated, matched };
+    };
+
+    const adjustStockForLoss = (stockRecords, fishName, batch, deltaJumlah) => {
+      let matched = false;
+      const updated = stockRecords.map((r) => {
+        if (r.fishName === fishName && r.batch === batch) {
+          matched = true;
+          const loss = Math.max(0, clampNum(r.loss) + deltaJumlah);
+          return withKeepStock({ ...r, loss });
+        }
+        return r;
+      });
+      return { stockRecords: updated, matched };
+    };
+
+    const getAvgPrice = (sales, fishName) => {
+      const relevant = sales.filter((s) => s.fishName === fishName);
+      if (relevant.length === 0) return DEFAULT_PRICES[fishName] || 20000;
+      const total = relevant.reduce((a, s) => a + clampNum(s.hargaPerEkor), 0);
+      return Math.round(total / relevant.length);
+    };
+
+    const getStockStatus = (record) => {
+      const totalMasuk = clampNum(record.stokAwal) + clampNum(record.stokMasuk);
+      const keep = record.keepStock;
+      if (keep <= 0) return { label: "Habis", color: "red" };
+      const pct = totalMasuk > 0 ? keep / totalMasuk : 0;
+      if (pct < 0.2) return { label: "Kritis", color: "red" };
+      if (pct < 0.5) return { label: "Menipis", color: "yellow" };
+      return { label: "Aman", color: "green" };
+    };
+
+    const lastNDays = (n) => {
+      const out = [];
+      for (let i = n - 1; i >= 0; i--) out.push(daysAgo(i));
+      return out;
+    };
+
+    const inRange = (dateStr, from, to) => {
+      if (!dateStr) return false;
+      if (from && dateStr < from) return false;
+      if (to && dateStr > to) return false;
+      return true;
+    };
+
+    const downloadBlob = (content, filename, mime) => {
+      const blob = new Blob([content], { type: mime });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    };
+
+    const toCSV = (rows, headers) => {
+      const escape = (v) => {
+        const s = String(v ?? "");
+        if (s.includes(",") || s.includes('"') || s.includes("\n")) return `"${s.replace(/"/g, '""')}"`;
+        return s;
+      };
+      const lines = [headers.map((h) => escape(h.label)).join(",")];
+      rows.forEach((row) => lines.push(headers.map((h) => escape(row[h.key])).join(",")));
+      return lines.join("\n");
+    };
+
+    function seedDatabase() {
+      return { fishSpecies: [], locations: [], customers: [], stockRecords: [], sales: [], losses: [] };
     }
-    setDb((prev) => ({ ...prev, stockRecords: prev.stockRecords.map((r) => (r.id === row.id ? withKeepStock(next) : r)) }));
-  };
 
-  const handleDelete = () => {
-    setDb((prev) => ({ ...prev, stockRecords: prev.stockRecords.filter((r) => r.id !== deleteTarget.id) }));
-    toast("Data Keep Stock berhasil dihapus.");
-    setDeleteTarget(null);
-  };
+    /* ======================================================================
+       THEME CONTEXT
+       ====================================================================== */
 
-  const columns = [
-    { key: "tanggal", label: "Tanggal", sortable: true, render: (r) => formatDate(r.tanggal) },
-    { key: "fishName", label: "Nama Ikan", sortable: true },
-    { key: "batch", label: "Batch", sortable: true, render: (r) => <span className="font-mono text-xs">{r.batch}</span> },
-    { key: "location", label: "Lokasi", sortable: true },
-    { key: "stokAwal", label: "Stok Awal", sortable: true },
-    { key: "stokMasuk", label: "Masuk (+/-)", sortable: true, render: (r) => (
-      <span className="inline-flex items-center gap-1.5">
-        <button onClick={() => quickAdjust(r, -1)} className="w-6 h-6 rounded-md border text-sm leading-none hover:bg-slate-100">−</button>
-        <span className="min-w-[2ch] text-center">{formatNumber(r.stokMasuk)}</span>
-        <button onClick={() => quickAdjust(r, 1)} className="w-6 h-6 rounded-md border text-sm leading-none hover:bg-slate-100">+</button>
-      </span>
-    ) },
-    { key: "stokKeluar", label: "Keluar", sortable: true },
-    { key: "terjual", label: "Terjual", sortable: true },
-    { key: "loss", label: "Loss", sortable: true },
-    { key: "keepStock", label: "Keep Stock", sortable: true, render: (r) => <span className={`font-semibold ${c("text-teal-700", "text-teal-400")}`}>{formatNumber(r.keepStock)}</span> },
-    { key: "ukuran", label: "Ukuran" },
-    { key: "kondisi", label: "Kondisi", render: (r) => <Badge color={r.kondisi === "Sehat" ? "green" : r.kondisi === "Karantina" ? "yellow" : "red"}>{r.kondisi}</Badge> },
-  ];
+    const ThemeCtx = createContext({ dark: false, c: (l) => l });
+    function useTheme() { return useContext(ThemeCtx); }
 
-  const preview = recalcKeepStock(form);
+    /* ======================================================================
+       KOMPONEN UI DASAR
+       ====================================================================== */
 
-  return (
-    <div>
-      <PageHeader
-        title="Keep Stock"
-        subtitle="Catat dan pantau pergerakan stok ikan per batch dan lokasi."
-        actions={
-          <button onClick={openCreate} className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium bg-gradient-to-r from-teal-600 to-cyan-600 text-white hover:opacity-90">
-            <Plus size={16} /> Tambah Data
-          </button>
-        }
-      />
-
-      <DataTable
-        columns={columns}
-        data={filteredData}
-        searchKeys={["fishName", "batch", "location", "catatan"]}
-        onEdit={openEdit}
-        onDelete={setDeleteTarget}
-        emptyText="Belum ada data Keep Stock."
-        filters={
-          <>
-            <SelectFilter value={fFish} onChange={setFFish} options={fishOptions} placeholder="Semua Ikan" />
-            <SelectFilter value={fBatch} onChange={setFBatch} options={batchOptions} placeholder="Semua Batch" />
-            <SelectFilter value={fLoc} onChange={setFLoc} options={locOptions} placeholder="Semua Lokasi" />
-            <input type="date" value={fFrom} onChange={(e) => setFFrom(e.target.value)} className={`${inputCls(c)} py-1.5 w-auto`} />
-            <input type="date" value={fTo} onChange={(e) => setFTo(e.target.value)} className={`${inputCls(c)} py-1.5 w-auto`} />
-            {(fFish || fBatch || fLoc || fFrom || fTo) && (
-              <button onClick={() => { setFFish(""); setFBatch(""); setFLoc(""); setFFrom(""); setFTo(""); }} className={`p-1.5 rounded-lg ${c("hover:bg-slate-100 text-slate-500", "hover:bg-slate-800 text-slate-400")}`} title="Reset filter">
-                <RotateCcw size={15} />
-              </button>
-            )}
-          </>
-        }
-      />
-
-      {modalOpen && (
-        <Modal
-          title={editingId ? "Edit Data Keep Stock" : "Tambah Data Keep Stock"}
-          onClose={() => setModalOpen(false)}
-          wide
-          footer={
-            <>
-              <button onClick={() => setModalOpen(false)} className={`px-4 py-2 rounded-lg text-sm font-medium border ${c("border-slate-200 text-slate-600 hover:bg-slate-50", "border-slate-700 text-slate-300 hover:bg-slate-800")}`}>Batal</button>
-              <button onClick={handleSave} className="px-4 py-2 rounded-lg text-sm font-medium bg-teal-600 text-white hover:bg-teal-700">Simpan</button>
-            </>
-          }
-        >
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4">
-            <Field label="Tanggal" required><input type="date" value={form.tanggal} onChange={(e) => setForm({ ...form, tanggal: e.target.value })} className={inputCls(c)} /></Field>
-            <Field label="Nama Ikan" required>
-              <input list="fishlist" value={form.fishName} onChange={(e) => setForm({ ...form, fishName: e.target.value })} className={inputCls(c)} placeholder="mis. Pleco L144" />
-              <datalist id="fishlist">{fishOptions.map((f) => <option key={f} value={f} />)}</datalist>
-            </Field>
-            <Field label="Kode / Batch" required><input value={form.batch} onChange={(e) => setForm({ ...form, batch: e.target.value })} className={inputCls(c)} placeholder="mis. PLC144-A" /></Field>
-            <Field label="Lokasi Penyimpanan" required>
-              <input list="loclist" value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} className={inputCls(c)} placeholder="mis. Akuarium A1" />
-              <datalist id="loclist">{locOptions.map((f) => <option key={f} value={f} />)}</datalist>
-            </Field>
-            <Field label="Stok Awal"><input type="number" min="0" value={form.stokAwal} onChange={(e) => setForm({ ...form, stokAwal: e.target.value })} className={inputCls(c)} /></Field>
-            <Field label="Stok Masuk"><input type="number" min="0" value={form.stokMasuk} onChange={(e) => setForm({ ...form, stokMasuk: e.target.value })} className={inputCls(c)} /></Field>
-            <Field label="Stok Keluar (selain terjual)"><input type="number" min="0" value={form.stokKeluar} onChange={(e) => setForm({ ...form, stokKeluar: e.target.value })} className={inputCls(c)} /></Field>
-            <Field label="Ukuran Ikan"><input value={form.ukuran} onChange={(e) => setForm({ ...form, ukuran: e.target.value })} className={inputCls(c)} placeholder="mis. 5-7 cm" /></Field>
-            <Field label="Jumlah Terjual" hint="Terisi otomatis dari modul Penjualan"><input type="number" min="0" value={form.terjual} onChange={(e) => setForm({ ...form, terjual: e.target.value })} className={inputCls(c)} /></Field>
-            <Field label="Jumlah Loss / Mati" hint="Terisi otomatis dari modul Data Loss"><input type="number" min="0" value={form.loss} onChange={(e) => setForm({ ...form, loss: e.target.value })} className={inputCls(c)} /></Field>
-            <Field label="Kondisi Ikan">
-              <select value={form.kondisi} onChange={(e) => setForm({ ...form, kondisi: e.target.value })} className={inputCls(c)}>
-                {KONDISI_OPTIONS.map((k) => <option key={k} value={k}>{k}</option>)}
-              </select>
-            </Field>
-            <div className="sm:col-span-2">
-              <Field label="Catatan"><textarea value={form.catatan} onChange={(e) => setForm({ ...form, catatan: e.target.value })} className={inputCls(c)} rows={2} /></Field>
+    function ToastStack({ toasts, onDismiss }) {
+      return (
+        <div className="fixed bottom-4 right-4 z-[100] flex flex-col gap-2 w-[calc(100%-2rem)] max-w-sm">
+          {toasts.map((t) => (
+            <div
+              key={t.id}
+              onClick={() => onDismiss(t.id)}
+              className={`cursor-pointer rounded-xl shadow-lg border px-4 py-3 flex items-start gap-2.5 text-sm animate-[fadeIn_0.2s_ease-out] ${
+                t.type === "error"
+                  ? "bg-red-50 border-red-200 text-red-800"
+                  : t.type === "warning"
+                  ? "bg-amber-50 border-amber-200 text-amber-800"
+                  : "bg-emerald-50 border-emerald-200 text-emerald-800"
+              }`}
+            >
+              {t.type === "error" ? (
+                <XCircle size={18} className="mt-0.5 shrink-0" />
+              ) : t.type === "warning" ? (
+                <Info size={18} className="mt-0.5 shrink-0" />
+              ) : (
+                <CheckCircle2 size={18} className="mt-0.5 shrink-0" />
+              )}
+              <span className="leading-snug">{t.message}</span>
             </div>
-          </div>
-          <div className={`rounded-xl px-4 py-3 flex items-center justify-between ${c("bg-teal-50", "bg-teal-500/10")}`}>
-            <span className={`text-sm font-medium ${c("text-teal-800", "text-teal-300")}`}>Keep Stock Akhir (otomatis)</span>
-            <span className={`text-lg font-bold ${c("text-teal-700", "text-teal-400")}`}>{formatNumber(preview)} ekor</span>
-          </div>
-        </Modal>
-      )}
-
-      {deleteTarget && (
-        <ConfirmDialog message={`Yakin ingin menghapus data Keep Stock "${deleteTarget.fishName}" batch ${deleteTarget.batch}?`} onConfirm={handleDelete} onCancel={() => setDeleteTarget(null)} />
-      )}
-    </div>
-  );
-}
-
-const emptySaleForm = {
-  tanggal: todayStr(), customer: "", fishName: "", batch: "",
-  jumlah: 1, hargaPerEkor: 0, metodePembayaran: "Tunai", statusPembayaran: "Lunas", catatan: "",
-};
-
-function SalesPage({ db, setDb, toast }) {
-  const { c } = useTheme();
-  const [modalOpen, setModalOpen] = useState(false);
-  const [form, setForm] = useState(emptySaleForm);
-  const [editingSale, setEditingSale] = useState(null);
-  const [deleteTarget, setDeleteTarget] = useState(null);
-  const [fFish, setFFish] = useState("");
-  const [fStatus, setFStatus] = useState("");
-  const [fFrom, setFFrom] = useState("");
-  const [fTo, setFTo] = useState("");
-
-  const fishOptions = getDistinct(db.stockRecords, "fishName");
-  const batchForFish = form.fishName ? getDistinct(db.stockRecords.filter((r) => r.fishName === form.fishName), "batch") : getDistinct(db.stockRecords, "batch");
-  const customerOptions = db.customers;
-
-  const filteredData = db.sales.filter(
-    (s) => (!fFish || s.fishName === fFish) && (!fStatus || s.statusPembayaran === fStatus) && inRange(s.tanggal, fFrom, fTo)
-  );
-
-  const openCreate = () => { setEditingSale(null); setForm(emptySaleForm); setModalOpen(true); };
-  const openEdit = (row) => { setEditingSale(row); setForm({ ...row }); setModalOpen(true); };
-
-  useEffect(() => {
-    if (modalOpen && !editingSale && form.fishName) {
-      setForm((f) => (f.hargaPerEkor ? f : { ...f, hargaPerEkor: getAvgPrice(db.sales, f.fishName) }));
-    }
-  }, [form.fishName, modalOpen, editingSale, db.sales]);
-
-  const handleSave = () => {
-    if (!form.tanggal || !form.customer || !form.fishName || !form.batch || !form.jumlah || !form.hargaPerEkor) {
-      toast("Tanggal, Customer, Nama Ikan, Batch, Jumlah, dan Harga wajib diisi.", "error");
-      return;
-    }
-    const jumlah = clampNum(form.jumlah);
-    const hargaPerEkor = clampNum(form.hargaPerEkor);
-    const total = jumlah * hargaPerEkor;
-
-    setDb((prev) => {
-      let stockRecords = prev.stockRecords;
-      let matched = true;
-
-      if (editingSale) {
-        const rev = adjustStockForSale(stockRecords, editingSale.fishName, editingSale.batch, -editingSale.jumlah);
-        stockRecords = rev.stockRecords;
-        const app = adjustStockForSale(stockRecords, form.fishName, form.batch, jumlah);
-        stockRecords = app.stockRecords;
-        matched = app.matched;
-      } else {
-        const app = adjustStockForSale(stockRecords, form.fishName, form.batch, jumlah);
-        stockRecords = app.stockRecords;
-        matched = app.matched;
-      }
-
-      const sales = editingSale
-        ? prev.sales.map((s) => (s.id === editingSale.id ? { ...s, ...form, jumlah, hargaPerEkor, total } : s))
-        : [...prev.sales, { ...form, jumlah, hargaPerEkor, total, id: uid(), createdAt: Date.now() }];
-
-      const customers = prev.customers.includes(form.customer) ? prev.customers : [...prev.customers, form.customer];
-
-      if (!matched) {
-        setTimeout(() => toast(`Batch "${form.batch}" tidak ditemukan di Keep Stock. Stok belum otomatis berkurang.`, "warning"), 50);
-      }
-
-      return { ...prev, stockRecords, sales, customers };
-    });
-
-    toast(editingSale ? "Data penjualan berhasil diperbarui." : "Penjualan berhasil disimpan & stok telah diperbarui.");
-    setModalOpen(false);
-  };
-
-  const quickAdjustSale = (sale, delta) => {
-    const newJumlah = clampNum(sale.jumlah) + delta;
-    if (newJumlah < 1) {
-      toast("Jumlah minimal 1. Hapus transaksi bila ingin membatalkan.", "error");
-      return;
-    }
-    const row = db.stockRecords.find((r) => r.fishName === sale.fishName && r.batch === sale.batch);
-    if (row && delta > 0 && row.keepStock < delta) {
-      toast("Stok tidak cukup.", "error");
-      return;
-    }
-    setDb((prev) => {
-      const { stockRecords } = adjustStockForSale(prev.stockRecords, sale.fishName, sale.batch, delta);
-      const sales = prev.sales.map((x) =>
-        x.id === sale.id ? { ...x, jumlah: newJumlah, total: newJumlah * clampNum(x.hargaPerEkor) } : x
+          ))}
+        </div>
       );
-      return { ...prev, stockRecords, sales };
-    });
-  };
-
-  const handleDelete = () => {
-    setDb((prev) => {
-      const { stockRecords } = adjustStockForSale(prev.stockRecords, deleteTarget.fishName, deleteTarget.batch, -deleteTarget.jumlah);
-      return { ...prev, stockRecords, sales: prev.sales.filter((s) => s.id !== deleteTarget.id) };
-    });
-    toast("Data penjualan berhasil dihapus dan stok dikembalikan.");
-    setDeleteTarget(null);
-  };
-
-  const statusColor = (s) => (s === "Lunas" ? "green" : s === "DP" ? "yellow" : "red");
-
-  const columns = [
-    { key: "tanggal", label: "Tanggal", sortable: true, render: (r) => formatDate(r.tanggal) },
-    { key: "customer", label: "Customer", sortable: true },
-    { key: "fishName", label: "Nama Ikan", sortable: true },
-    { key: "batch", label: "Batch", render: (r) => <span className="font-mono text-xs">{r.batch}</span> },
-    { key: "jumlah", label: "Jumlah (+/-)", sortable: true, render: (r) => (
-      <span className="inline-flex items-center gap-1.5">
-        <button onClick={() => quickAdjustSale(r, -1)} className="w-6 h-6 rounded-md border text-sm leading-none hover:bg-slate-100">−</button>
-        <span className="min-w-[2ch] text-center">{formatNumber(r.jumlah)}</span>
-        <button onClick={() => quickAdjustSale(r, 1)} className="w-6 h-6 rounded-md border text-sm leading-none hover:bg-slate-100">+</button>
-      </span>
-    ) },
-    { key: "hargaPerEkor", label: "Harga/Ekor", sortable: true, render: (r) => formatCurrency(r.hargaPerEkor) },
-    { key: "total", label: "Total", sortable: true, render: (r) => <span className="font-semibold">{formatCurrency(r.total)}</span> },
-    { key: "metodePembayaran", label: "Metode" },
-    { key: "statusPembayaran", label: "Status", render: (r) => <Badge color={statusColor(r.statusPembayaran)}>{r.statusPembayaran}</Badge> },
-  ];
-
-  const total = clampNum(form.jumlah) * clampNum(form.hargaPerEkor);
-
-  return (
-    <div>
-      <PageHeader
-        title="Sales / Penjualan"
-        subtitle="Catat transaksi penjualan — Keep Stock akan otomatis berkurang."
-        actions={
-          <button onClick={openCreate} className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium bg-gradient-to-r from-teal-600 to-cyan-600 text-white hover:opacity-90">
-            <Plus size={16} /> Tambah Penjualan
-          </button>
-        }
-      />
-
-      <DataTable
-        columns={columns}
-        data={filteredData}
-        searchKeys={["customer", "fishName", "batch", "catatan"]}
-        onEdit={openEdit}
-        onDelete={setDeleteTarget}
-        emptyText="Belum ada data penjualan."
-        filters={
-          <>
-            <SelectFilter value={fFish} onChange={setFFish} options={fishOptions} placeholder="Semua Ikan" />
-            <SelectFilter value={fStatus} onChange={setFStatus} options={STATUS_BAYAR} placeholder="Semua Status" />
-            <input type="date" value={fFrom} onChange={(e) => setFFrom(e.target.value)} className={`${inputCls(c)} py-1.5 w-auto`} />
-            <input type="date" value={fTo} onChange={(e) => setFTo(e.target.value)} className={`${inputCls(c)} py-1.5 w-auto`} />
-          </>
-        }
-      />
-
-      {modalOpen && (
-        <Modal
-          title={editingSale ? "Edit Penjualan" : "Tambah Penjualan"}
-          onClose={() => setModalOpen(false)}
-          wide
-          footer={
-            <>
-              <button onClick={() => setModalOpen(false)} className={`px-4 py-2 rounded-lg text-sm font-medium border ${c("border-slate-200 text-slate-600 hover:bg-slate-50", "border-slate-700 text-slate-300 hover:bg-slate-800")}`}>Batal</button>
-              <button onClick={handleSave} className="px-4 py-2 rounded-lg text-sm font-medium bg-teal-600 text-white hover:bg-teal-700">Simpan</button>
-            </>
-          }
-        >
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4">
-            <Field label="Tanggal" required><input type="date" value={form.tanggal} onChange={(e) => setForm({ ...form, tanggal: e.target.value })} className={inputCls(c)} /></Field>
-            <Field label="Customer" required>
-              <input list="custlist" value={form.customer} onChange={(e) => setForm({ ...form, customer: e.target.value })} className={inputCls(c)} placeholder="Nama pembeli" />
-              <datalist id="custlist">{customerOptions.map((f) => <option key={f} value={f} />)}</datalist>
-            </Field>
-            <Field label="Nama Ikan" required>
-              <input list="fishlist2" value={form.fishName} onChange={(e) => setForm({ ...form, fishName: e.target.value })} className={inputCls(c)} />
-              <datalist id="fishlist2">{fishOptions.map((f) => <option key={f} value={f} />)}</datalist>
-            </Field>
-            <Field label="Kode / Batch" required>
-              <input list="batchlist2" value={form.batch} onChange={(e) => setForm({ ...form, batch: e.target.value })} className={inputCls(c)} />
-              <datalist id="batchlist2">{batchForFish.map((f) => <option key={f} value={f} />)}</datalist>
-            </Field>
-            <Field label="Jumlah (ekor)" required><input type="number" min="1" value={form.jumlah} onChange={(e) => setForm({ ...form, jumlah: e.target.value })} className={inputCls(c)} /></Field>
-            <Field label="Harga per Ekor" required><input type="number" min="0" value={form.hargaPerEkor} onChange={(e) => setForm({ ...form, hargaPerEkor: e.target.value })} className={inputCls(c)} /></Field>
-            <Field label="Metode Pembayaran">
-              <select value={form.metodePembayaran} onChange={(e) => setForm({ ...form, metodePembayaran: e.target.value })} className={inputCls(c)}>
-                {METODE_BAYAR.map((m) => <option key={m} value={m}>{m}</option>)}
-              </select>
-            </Field>
-            <Field label="Status Pembayaran">
-              <select value={form.statusPembayaran} onChange={(e) => setForm({ ...form, statusPembayaran: e.target.value })} className={inputCls(c)}>
-                {STATUS_BAYAR.map((m) => <option key={m} value={m}>{m}</option>)}
-              </select>
-            </Field>
-            <div className="sm:col-span-2">
-              <Field label="Catatan"><textarea value={form.catatan} onChange={(e) => setForm({ ...form, catatan: e.target.value })} className={inputCls(c)} rows={2} /></Field>
-            </div>
-          </div>
-          <div className={`rounded-xl px-4 py-3 flex items-center justify-between ${c("bg-cyan-50", "bg-cyan-500/10")}`}>
-            <span className={`text-sm font-medium ${c("text-cyan-800", "text-cyan-300")}`}>Total Harga (otomatis)</span>
-            <span className={`text-lg font-bold ${c("text-cyan-700", "text-cyan-400")}`}>{formatCurrency(total)}</span>
-          </div>
-        </Modal>
-      )}
-
-      {deleteTarget && (
-        <ConfirmDialog message={`Yakin ingin menghapus transaksi penjualan ${deleteTarget.fishName} untuk ${deleteTarget.customer}? Stok akan dikembalikan.`} onConfirm={handleDelete} onCancel={() => setDeleteTarget(null)} />
-      )}
-    </div>
-  );
-}
-
-const emptyLossForm = {
-  tanggal: todayStr(), fishName: "", batch: "", location: "",
-  jumlahLoss: 1, penyebab: "Tidak Diketahui", ukuran: "", kondisi: "Mati", catatan: "",
-};
-
-function RankedList({ title, data }) {
-  const { c } = useTheme();
-  const max = Math.max(1, ...data.map((d) => d.value));
-  return (
-    <div className={`rounded-2xl border p-4 ${c("bg-white border-slate-200", "bg-slate-900 border-slate-800")}`}>
-      <p className={`text-sm font-semibold mb-3 ${c("text-slate-700", "text-slate-200")}`}>{title}</p>
-      {data.length === 0 && <p className={`text-xs ${c("text-slate-400", "text-slate-500")}`}>Belum ada data.</p>}
-      <div className="space-y-2.5">
-        {data.map((d) => (
-          <div key={d.label}>
-            <div className="flex justify-between text-xs mb-1">
-              <span className={c("text-slate-600", "text-slate-300")}>{d.label}</span>
-              <span className={`font-medium ${c("text-slate-700", "text-slate-200")}`}>{formatNumber(d.value)} ekor</span>
-            </div>
-            <div className={`h-1.5 rounded-full ${c("bg-slate-100", "bg-slate-800")}`}>
-              <div className="h-1.5 rounded-full bg-gradient-to-r from-red-500 to-amber-500" style={{ width: `${(d.value / max) * 100}%` }} />
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function LossPage({ db, setDb, toast }) {
-  const { c } = useTheme();
-  const [modalOpen, setModalOpen] = useState(false);
-  const [form, setForm] = useState(emptyLossForm);
-  const [editingLoss, setEditingLoss] = useState(null);
-  const [deleteTarget, setDeleteTarget] = useState(null);
-  const [fFish, setFFish] = useState("");
-  const [fPenyebab, setFPenyebab] = useState("");
-  const [fFrom, setFFrom] = useState("");
-  const [fTo, setFTo] = useState("");
-
-  const fishOptions = getDistinct(db.stockRecords, "fishName");
-  const batchForFish = form.fishName ? getDistinct(db.stockRecords.filter((r) => r.fishName === form.fishName), "batch") : getDistinct(db.stockRecords, "batch");
-  const locOptions = getDistinct(db.stockRecords, "location");
-
-  const today = todayStr();
-  const thisMonth = today.slice(0, 7);
-  const totalLossHariIni = db.losses.filter((l) => l.tanggal === today).reduce((a, l) => a + l.jumlahLoss, 0);
-  const totalLossBulanIni = db.losses.filter((l) => l.tanggal.slice(0, 7) === thisMonth).reduce((a, l) => a + l.jumlahLoss, 0);
-
-  const groupSum = (key) => {
-    const map = {};
-    db.losses.forEach((l) => (map[l[key]] = (map[l[key]] || 0) + l.jumlahLoss));
-    return Object.entries(map).map(([label, value]) => ({ label, value })).sort((a, b) => b.value - a.value).slice(0, 6);
-  };
-
-  const filteredData = db.losses.filter(
-    (l) => (!fFish || l.fishName === fFish) && (!fPenyebab || l.penyebab === fPenyebab) && inRange(l.tanggal, fFrom, fTo)
-  );
-
-  const openCreate = () => { setEditingLoss(null); setForm(emptyLossForm); setModalOpen(true); };
-  const openEdit = (row) => { setEditingLoss(row); setForm({ ...row }); setModalOpen(true); };
-
-  const handleSave = () => {
-    if (!form.tanggal || !form.fishName || !form.batch || !form.location || !form.jumlahLoss) {
-      toast("Tanggal, Nama Ikan, Batch, Lokasi, dan Jumlah Loss wajib diisi.", "error");
-      return;
     }
-    const jumlahLoss = clampNum(form.jumlahLoss);
 
-    setDb((prev) => {
-      let stockRecords = prev.stockRecords;
-      let matched = true;
+    function useToast() {
+      const [toasts, setToasts] = useState([]);
+      const push = useCallback((message, type = "success") => {
+        const id = uid();
+        setToasts((prev) => [...prev, { id, message, type }]);
+        setTimeout(() => setToasts((prev) => prev.filter((t) => t.id !== id)), 3200);
+      }, []);
+      const dismiss = (id) => setToasts((prev) => prev.filter((t) => t.id !== id));
+      return { toasts, push, dismiss };
+    }
 
-      if (editingLoss) {
-        const rev = adjustStockForLoss(stockRecords, editingLoss.fishName, editingLoss.batch, -editingLoss.jumlahLoss);
-        stockRecords = rev.stockRecords;
-        const app = adjustStockForLoss(stockRecords, form.fishName, form.batch, jumlahLoss);
-        stockRecords = app.stockRecords;
-        matched = app.matched;
-      } else {
-        const app = adjustStockForLoss(stockRecords, form.fishName, form.batch, jumlahLoss);
-        stockRecords = app.stockRecords;
-        matched = app.matched;
-      }
+    function Modal({ title, onClose, children, footer, wide }) {
+      const { c } = useTheme();
+      return (
+        <div className="fixed inset-0 z-50 overflow-y-auto">
+          <div className="fixed inset-0 bg-black/50" onClick={onClose} />
+          <div className="relative flex min-h-full items-start sm:items-center justify-center p-2 sm:p-4">
+            <div className={`relative w-full ${wide ? "sm:max-w-2xl" : "sm:max-w-lg"} flex flex-col rounded-2xl shadow-2xl ${c("bg-white", "bg-slate-900")} border ${c("border-slate-200", "border-slate-700")}`}>
+              <div className={`flex items-center justify-between px-5 py-4 border-b ${c("border-slate-100", "border-slate-800")}`}>
+                <h3 className={`font-semibold text-base ${c("text-slate-800", "text-slate-100")}`}>{title}</h3>
+                <button onClick={onClose} className={`p-1.5 rounded-lg ${c("hover:bg-slate-100", "hover:bg-slate-800")}`}>
+                  <X size={18} className={c("text-slate-500", "text-slate-400")} />
+                </button>
+              </div>
+              <div className="px-5 py-4">{children}</div>
+              {footer && <div className={`px-5 py-3 border-t ${c("border-slate-100", "border-slate-800")} flex justify-end gap-2`}>{footer}</div>}
+            </div>
+          </div>
+        </div>
+      );
+    }
 
-      const losses = editingLoss
-        ? prev.losses.map((l) => (l.id === editingLoss.id ? { ...l, ...form, jumlahLoss } : l))
-        : [...prev.losses, { ...form, jumlahLoss, id: uid(), createdAt: Date.now() }];
-
-      if (!matched) {
-        setTimeout(() => toast(`Batch "${form.batch}" tidak ditemukan di Keep Stock. Stok belum otomatis berkurang.`, "warning"), 50);
-      }
-
-      return { ...prev, stockRecords, losses };
-    });
-
-    toast(editingLoss ? "Data loss berhasil diperbarui." : "Data loss berhasil disimpan & stok telah diperbarui.");
-    setModalOpen(false);
-  };
-
-  const handleDelete = () => {
-    setDb((prev) => {
-      const { stockRecords } = adjustStockForLoss(prev.stockRecords, deleteTarget.fishName, deleteTarget.batch, -deleteTarget.jumlahLoss);
-      return { ...prev, stockRecords, losses: prev.losses.filter((l) => l.id !== deleteTarget.id) };
-    });
-    toast("Data loss berhasil dihapus dan stok dikembalikan.");
-    setDeleteTarget(null);
-  };
-
-  const columns = [
-    { key: "tanggal", label: "Tanggal", sortable: true, render: (r) => formatDate(r.tanggal) },
-    { key: "fishName", label: "Nama Ikan", sortable: true },
-    { key: "batch", label: "Batch", render: (r) => <span className="font-mono text-xs">{r.batch}</span> },
-    { key: "location", label: "Lokasi" },
-    { key: "jumlahLoss", label: "Jumlah Loss", sortable: true, render: (r) => <span className="font-semibold text-red-600">{formatNumber(r.jumlahLoss)} ekor</span> },
-    { key: "penyebab", label: "Penyebab", render: (r) => <Badge color="red">{r.penyebab}</Badge> },
-    { key: "ukuran", label: "Ukuran" },
-    { key: "kondisi", label: "Kondisi" },
-  ];
-
-  return (
-    <div>
-      <PageHeader
-        title="Data Loss"
-        subtitle="Catat ikan yang mati atau hilang — Keep Stock akan otomatis berkurang."
-        actions={
-          <button onClick={openCreate} className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium bg-gradient-to-r from-red-500 to-amber-500 text-white hover:opacity-90">
-            <Plus size={16} /> Tambah Data Loss
-          </button>
-        }
-      />
-
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
-        <StatCard icon={AlertTriangle} label="Loss Hari Ini" value={`${formatNumber(totalLossHariIni)} ekor`} accent="red" />
-        <StatCard icon={AlertTriangle} label="Loss Bulan Ini" value={`${formatNumber(totalLossBulanIni)} ekor`} accent="amber" />
-        <StatCard icon={FishIcon} label="Total Kejadian" value={formatNumber(db.losses.length)} accent="slate" />
-        <StatCard icon={TrendingDown} label="Total Loss Keseluruhan" value={`${formatNumber(db.losses.reduce((a, l) => a + l.jumlahLoss, 0))} ekor`} accent="slate" />
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
-        <RankedList title="Loss Berdasarkan Jenis Ikan" data={groupSum("fishName")} />
-        <RankedList title="Loss Berdasarkan Batch" data={groupSum("batch")} />
-        <RankedList title="Loss Berdasarkan Penyebab" data={groupSum("penyebab")} />
-      </div>
-
-      <DataTable
-        columns={columns}
-        data={filteredData}
-        searchKeys={["fishName", "batch", "location", "penyebab"]}
-        onEdit={openEdit}
-        onDelete={setDeleteTarget}
-        emptyText="Belum ada data loss."
-        filters={
-          <>
-            <SelectFilter value={fFish} onChange={setFFish} options={fishOptions} placeholder="Semua Ikan" />
-            <SelectFilter value={fPenyebab} onChange={setFPenyebab} options={PENYEBAB_LOSS} placeholder="Semua Penyebab" />
-            <input type="date" value={fFrom} onChange={(e) => setFFrom(e.target.value)} className={`${inputCls(c)} py-1.5 w-auto`} />
-            <input type="date" value={fTo} onChange={(e) => setFTo(e.target.value)} className={`${inputCls(c)} py-1.5 w-auto`} />
-          </>
-        }
-      />
-
-      {modalOpen && (
+    function ConfirmDialog({ message, onConfirm, onCancel }) {
+      const { c } = useTheme();
+      return (
         <Modal
-          title={editingLoss ? "Edit Data Loss" : "Tambah Data Loss"}
-          onClose={() => setModalOpen(false)}
-          wide
+          title="Konfirmasi Hapus"
+          onClose={onCancel}
           footer={
             <>
-              <button onClick={() => setModalOpen(false)} className={`px-4 py-2 rounded-lg text-sm font-medium border ${c("border-slate-200 text-slate-600 hover:bg-slate-50", "border-slate-700 text-slate-300 hover:bg-slate-800")}`}>Batal</button>
-              <button onClick={handleSave} className="px-4 py-2 rounded-lg text-sm font-medium bg-red-600 text-white hover:bg-red-700">Simpan</button>
+              <button onClick={onCancel} className={`px-4 py-2 rounded-lg text-sm font-medium border ${c("border-slate-200 text-slate-600 hover:bg-slate-50", "border-slate-700 text-slate-300 hover:bg-slate-800")}`}>
+                Batal
+              </button>
+              <button onClick={onConfirm} className="px-4 py-2 rounded-lg text-sm font-medium bg-red-600 text-white hover:bg-red-700">
+                Ya, Hapus
+              </button>
             </>
           }
         >
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4">
-            <Field label="Tanggal" required><input type="date" value={form.tanggal} onChange={(e) => setForm({ ...form, tanggal: e.target.value })} className={inputCls(c)} /></Field>
-            <Field label="Nama Ikan" required>
-              <input list="fishlist3" value={form.fishName} onChange={(e) => setForm({ ...form, fishName: e.target.value })} className={inputCls(c)} />
-              <datalist id="fishlist3">{fishOptions.map((f) => <option key={f} value={f} />)}</datalist>
-            </Field>
-            <Field label="Kode / Batch" required>
-              <input list="batchlist3" value={form.batch} onChange={(e) => setForm({ ...form, batch: e.target.value })} className={inputCls(c)} />
-              <datalist id="batchlist3">{batchForFish.map((f) => <option key={f} value={f} />)}</datalist>
-            </Field>
-            <Field label="Lokasi" required>
-              <input list="loclist3" value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} className={inputCls(c)} />
-              <datalist id="loclist3">{locOptions.map((f) => <option key={f} value={f} />)}</datalist>
-            </Field>
-            <Field label="Jumlah Loss" required><input type="number" min="1" value={form.jumlahLoss} onChange={(e) => setForm({ ...form, jumlahLoss: e.target.value })} className={inputCls(c)} /></Field>
-            <Field label="Penyebab Loss">
-              <select value={form.penyebab} onChange={(e) => setForm({ ...form, penyebab: e.target.value })} className={inputCls(c)}>
-                {PENYEBAB_LOSS.map((p) => <option key={p} value={p}>{p}</option>)}
-              </select>
-            </Field>
-            <Field label="Ukuran Ikan"><input value={form.ukuran} onChange={(e) => setForm({ ...form, ukuran: e.target.value })} className={inputCls(c)} /></Field>
-            <Field label="Kondisi Ikan">
-              <select value={form.kondisi} onChange={(e) => setForm({ ...form, kondisi: e.target.value })} className={inputCls(c)}>
-                {KONDISI_OPTIONS.map((k) => <option key={k} value={k}>{k}</option>)}
-              </select>
-            </Field>
-            <div className="sm:col-span-2">
-              <Field label="Catatan"><textarea value={form.catatan} onChange={(e) => setForm({ ...form, catatan: e.target.value })} className={inputCls(c)} rows={2} /></Field>
+          <p className={c("text-slate-600", "text-slate-300")}>{message}</p>
+        </Modal>
+      );
+    }
+
+    function Badge({ children, color = "slate" }) {
+      const map = {
+        green: "bg-emerald-100 text-emerald-700",
+        yellow: "bg-amber-100 text-amber-700",
+        red: "bg-red-100 text-red-700",
+        slate: "bg-slate-100 text-slate-600",
+        teal: "bg-teal-100 text-teal-700",
+        cyan: "bg-cyan-100 text-cyan-700",
+      };
+      return <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium whitespace-nowrap ${map[color] || map.slate}`}>{children}</span>;
+    }
+
+    function Field({ label, required, children, hint }) {
+      const { c } = useTheme();
+      return (
+        <label className="block mb-3">
+          <span className={`block text-xs font-medium mb-1 ${c("text-slate-600", "text-slate-300")}`}>
+            {label} {required && <span className="text-red-500">*</span>}
+          </span>
+          {children}
+          {hint && <span className={`block text-[11px] mt-1 ${c("text-slate-400", "text-slate-500")}`}>{hint}</span>}
+        </label>
+      );
+    }
+
+    function inputCls(c) {
+      return `w-full rounded-lg border px-3 py-2 text-sm outline-none transition focus:ring-2 focus:ring-teal-500/40 focus:border-teal-500 ${c(
+        "bg-white border-slate-200 text-slate-800 placeholder:text-slate-400",
+        "bg-slate-800 border-slate-700 text-slate-100 placeholder:text-slate-500"
+      )}`;
+    }
+
+    function StatCard({ icon: Icon, label, value, sub, accent }) {
+      const { c } = useTheme();
+      const accents = {
+        teal: c("bg-teal-50 text-teal-600", "bg-teal-500/10 text-teal-400"),
+        cyan: c("bg-cyan-50 text-cyan-600", "bg-cyan-500/10 text-cyan-400"),
+        amber: c("bg-amber-50 text-amber-600", "bg-amber-500/10 text-amber-400"),
+        red: c("bg-red-50 text-red-600", "bg-red-500/10 text-red-400"),
+        emerald: c("bg-emerald-50 text-emerald-600", "bg-emerald-500/10 text-emerald-400"),
+        slate: c("bg-slate-100 text-slate-600", "bg-slate-500/10 text-slate-400"),
+      };
+      return (
+        <div className={`rounded-2xl border p-4 ${c("bg-white border-slate-200", "bg-slate-900 border-slate-800")}`}>
+          <div className="flex items-start justify-between">
+            <div>
+              <p className={`text-xs font-medium ${c("text-slate-500", "text-slate-400")}`}>{label}</p>
+              <p className={`text-xl font-bold mt-1 ${c("text-slate-800", "text-slate-100")}`}>{value}</p>
+              {sub && <p className={`text-[11px] mt-1 ${c("text-slate-400", "text-slate-500")}`}>{sub}</p>}
+            </div>
+            <div className={`p-2 rounded-xl ${accents[accent] || accents.teal}`}>
+              <Icon size={18} />
             </div>
           </div>
-        </Modal>
-      )}
+        </div>
+      );
+    }
 
-      {deleteTarget && (
-        <ConfirmDialog message={`Yakin ingin menghapus data loss ${deleteTarget.fishName} batch ${deleteTarget.batch}? Stok akan dikembalikan.`} onConfirm={handleDelete} onCancel={() => setDeleteTarget(null)} />
-      )}
-    </div>
-  );
-}
+    function WaveDivider() {
+      return (
+        <svg viewBox="0 0 200 10" preserveAspectRatio="none" className="w-full h-2 mt-2">
+          <path d="M0 5 Q 10 0, 20 5 T 40 5 T 60 5 T 80 5 T 100 5 T 120 5 T 140 5 T 160 5 T 180 5 T 200 5" fill="none" stroke="url(#waveGrad)" strokeWidth="2" />
+          <defs>
+            <linearGradient id="waveGrad" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0%" stopColor="#0d9488" />
+              <stop offset="100%" stopColor="#22d3ee" />
+            </linearGradient>
+          </defs>
+        </svg>
+      );
+    }
 
-function InventoryPage({ db }) {
-  const { c } = useTheme();
-  const [fFish, setFFish] = useState("");
-  const [fLoc, setFLoc] = useState("");
-  const [fStatus, setFStatus] = useState("");
-  const [detail, setDetail] = useState(null);
+    function PageHeader({ title, subtitle, actions }) {
+      const { c } = useTheme();
+      return (
+        <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <h2 className={`text-lg sm:text-xl font-bold ${c("text-slate-800", "text-slate-100")}`}>{title}</h2>
+            {subtitle && <p className={`text-sm mt-0.5 ${c("text-slate-500", "text-slate-400")}`}>{subtitle}</p>}
+            <WaveDivider />
+          </div>
+          {actions && <div className="flex gap-2 flex-wrap">{actions}</div>}
+        </div>
+      );
+    }
 
-  const fishOptions = getDistinct(db.stockRecords, "fishName");
-  const locOptions = getDistinct(db.stockRecords, "location");
+    function EmptyState({ text }) {
+      const { c } = useTheme();
+      return (
+        <div className={`text-center py-10 text-sm ${c("text-slate-400", "text-slate-500")}`}>
+          <FishIcon size={28} className="mx-auto mb-2 opacity-40" />
+          {text}
+        </div>
+      );
+    }
 
-  const rows = db.stockRecords.map((r) => ({ ...r, status: getStockStatus(r) }));
+    function DataTable({ columns, data, searchKeys = [], pageSize = 8, onEdit, onDelete, onView, filters, emptyText = "Belum ada data." }) {
+      const { c } = useTheme();
+      const [query, setQuery] = useState("");
+      const [sortKey, setSortKey] = useState(null);
+      const [sortDir, setSortDir] = useState("asc");
+      const [page, setPage] = useState(0);
 
-  const filteredData = rows.filter(
-    (r) => (!fFish || r.fishName === fFish) && (!fLoc || r.location === fLoc) && (!fStatus || r.status.label === fStatus)
-  );
+      useEffect(() => setPage(0), [query, data.length]);
 
-  const columns = [
-    { key: "fishName", label: "Nama Ikan", sortable: true },
-    { key: "batch", label: "Kode Batch", render: (r) => <span className="font-mono text-xs">{r.batch}</span> },
-    { key: "location", label: "Lokasi", sortable: true },
-    { key: "stokAwal", label: "Stok Awal", sortable: true },
-    { key: "stokMasuk", label: "Stok Masuk", sortable: true },
-    { key: "terjual", label: "Terjual", sortable: true },
-    { key: "loss", label: "Loss", sortable: true },
-    { key: "keepStock", label: "Keep Stock", sortable: true, render: (r) => <span className="font-bold">{formatNumber(r.keepStock)}</span> },
-    { key: "ukuran", label: "Ukuran" },
-    { key: "status", label: "Status", render: (r) => <Badge color={r.status.color}>{r.status.label}</Badge> },
-  ];
+      const filtered = useMemo(() => {
+        if (!query || searchKeys.length === 0) return data;
+        const q = query.toLowerCase();
+        return data.filter((row) => searchKeys.some((k) => String(row[k] ?? "").toLowerCase().includes(q)));
+      }, [data, query, searchKeys]);
 
-  return (
-    <div>
-      <PageHeader title="Inventory" subtitle="Seluruh posisi stok ikan berdasarkan batch, lengkap dengan indikator status." />
+      const sorted = useMemo(() => {
+        if (!sortKey) return filtered;
+        return [...filtered].sort((a, b) => {
+          const av = a[sortKey], bv = b[sortKey];
+          if (typeof av === "number" && typeof bv === "number") return sortDir === "asc" ? av - bv : bv - av;
+          return sortDir === "asc" ? String(av ?? "").localeCompare(String(bv ?? "")) : String(bv ?? "").localeCompare(String(av ?? ""));
+        });
+      }, [filtered, sortKey, sortDir]);
 
-      <div className={`flex flex-wrap items-center gap-3 mb-4 text-xs rounded-xl border p-3 ${c("bg-white border-slate-200", "bg-slate-900 border-slate-800")}`}>
-        <span className={`font-medium ${c("text-slate-500", "text-slate-400")}`}>Legenda:</span>
-        <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-emerald-500" /> Hijau = Stok Aman</span>
-        <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-amber-500" /> Kuning = Stok Menipis</span>
-        <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-red-500" /> Merah = Stok Kritis / Habis</span>
-      </div>
+      const totalPages = Math.max(1, Math.ceil(sorted.length / pageSize));
+      const paged = sorted.slice(page * pageSize, (page + 1) * pageSize);
 
-      <DataTable
-        columns={columns}
-        data={filteredData}
-        searchKeys={["fishName", "batch", "location"]}
-        onView={setDetail}
-        emptyText="Belum ada data inventory."
-        filters={
-          <>
-            <SelectFilter value={fFish} onChange={setFFish} options={fishOptions} placeholder="Semua Ikan" />
-            <SelectFilter value={fLoc} onChange={setFLoc} options={locOptions} placeholder="Semua Lokasi" />
-            <SelectFilter value={fStatus} onChange={setFStatus} options={["Aman", "Menipis", "Kritis", "Habis"]} placeholder="Semua Status" />
-          </>
+      const toggleSort = (key) => {
+        if (sortKey === key) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+        else {
+          setSortKey(key);
+          setSortDir("asc");
         }
-      />
+      };
 
-      {detail && (
-        <Modal title={`Detail Batch — ${detail.batch}`} onClose={() => setDetail(null)}>
-          <div className="space-y-2 text-sm">
-            {[
-              ["Nama Ikan", detail.fishName],
-              ["Batch", detail.batch],
-              ["Lokasi", detail.location],
-              ["Tanggal", formatDate(detail.tanggal)],
-              ["Stok Awal", `${formatNumber(detail.stokAwal)} ekor`],
-              ["Stok Masuk", `${formatNumber(detail.stokMasuk)} ekor`],
-              ["Stok Keluar", `${formatNumber(detail.stokKeluar)} ekor`],
-              ["Terjual", `${formatNumber(detail.terjual)} ekor`],
-              ["Loss", `${formatNumber(detail.loss)} ekor`],
-              ["Keep Stock", `${formatNumber(detail.keepStock)} ekor`],
-              ["Ukuran", detail.ukuran || "-"],
-              ["Kondisi", detail.kondisi],
-              ["Catatan", detail.catatan || "-"],
-            ].map(([k, v]) => (
-              <div key={k} className={`flex justify-between border-b pb-1.5 ${c("border-slate-100", "border-slate-800")}`}>
-                <span className={c("text-slate-500", "text-slate-400")}>{k}</span>
-                <span className={`font-medium text-right ${c("text-slate-700", "text-slate-200")}`}>{v}</span>
+      return (
+        <div className={`rounded-2xl border ${c("bg-white border-slate-200", "bg-slate-900 border-slate-800")}`}>
+          <div className={`flex flex-wrap items-center gap-2 p-3 border-b ${c("border-slate-100", "border-slate-800")}`}>
+            {searchKeys.length > 0 && (
+              <div className="relative flex-1 min-w-[160px]">
+                <Search size={15} className={`absolute left-2.5 top-1/2 -translate-y-1/2 ${c("text-slate-400", "text-slate-500")}`} />
+                <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Cari data..." className={`${inputCls(c)} pl-8 py-1.5`} />
+              </div>
+            )}
+            {filters}
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className={c("bg-slate-50", "bg-slate-800/60")}>
+                  {columns.map((col) => (
+                    <th
+                      key={col.key}
+                      onClick={() => col.sortable && toggleSort(col.key)}
+                      className={`text-left px-3 py-2.5 font-semibold text-xs uppercase tracking-wide whitespace-nowrap ${c("text-slate-500", "text-slate-400")} ${
+                        col.sortable ? "cursor-pointer select-none" : ""
+                      }`}
+                    >
+                      <span className="inline-flex items-center gap-1">
+                        {col.label}
+                        {col.sortable && <ArrowUpDown size={11} className="opacity-50" />}
+                      </span>
+                    </th>
+                  ))}
+                  {(onEdit || onDelete || onView) && <th className={`px-3 py-2.5 text-xs font-semibold uppercase ${c("text-slate-500", "text-slate-400")}`}>Aksi</th>}
+                </tr>
+              </thead>
+              <tbody>
+                {paged.length === 0 && (
+                  <tr>
+                    <td colSpan={columns.length + 1}>
+                      <EmptyState text={emptyText} />
+                    </td>
+                  </tr>
+                )}
+                {paged.map((row, idx) => (
+                  <tr key={row.id ?? idx} className={`border-t ${c("border-slate-100 hover:bg-slate-50", "border-slate-800 hover:bg-slate-800/40")} transition-colors`}>
+                    {columns.map((col) => (
+                      <td key={col.key} className={`px-3 py-2.5 whitespace-nowrap ${c("text-slate-700", "text-slate-200")}`}>
+                        {col.render ? col.render(row) : row[col.key]}
+                      </td>
+                    ))}
+                    {(onEdit || onDelete || onView) && (
+                      <td className="px-3 py-2.5">
+                        <div className="flex items-center gap-1">
+                          {onView && (
+                            <button onClick={() => onView(row)} className={`p-1.5 rounded-lg ${c("hover:bg-slate-100 text-slate-500", "hover:bg-slate-800 text-slate-400")}`} title="Lihat detail">
+                              <Eye size={15} />
+                            </button>
+                          )}
+                          {onEdit && (
+                            <button onClick={() => onEdit(row)} className={`p-1.5 rounded-lg ${c("hover:bg-teal-50 text-teal-600", "hover:bg-teal-500/10 text-teal-400")}`} title="Edit">
+                              <Pencil size={15} />
+                            </button>
+                          )}
+                          {onDelete && (
+                            <button onClick={() => onDelete(row)} className={`p-1.5 rounded-lg ${c("hover:bg-red-50 text-red-500", "hover:bg-red-500/10 text-red-400")}`} title="Hapus">
+                              <Trash2 size={15} />
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    )}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {sorted.length > 0 && (
+            <div className={`flex items-center justify-between px-3 py-2.5 border-t text-xs ${c("border-slate-100 text-slate-500", "border-slate-800 text-slate-400")}`}>
+              <span>
+                Menampilkan {page * pageSize + 1}-{Math.min((page + 1) * pageSize, sorted.length)} dari {sorted.length} data
+              </span>
+              <div className="flex items-center gap-1">
+                <button disabled={page === 0} onClick={() => setPage((p) => p - 1)} className={`p-1 rounded-md disabled:opacity-30 ${c("hover:bg-slate-100", "hover:bg-slate-800")}`}>
+                  <ChevronLeft size={16} />
+                </button>
+                <span>{page + 1} / {totalPages}</span>
+                <button disabled={page >= totalPages - 1} onClick={() => setPage((p) => p + 1)} className={`p-1 rounded-md disabled:opacity-30 ${c("hover:bg-slate-100", "hover:bg-slate-800")}`}>
+                  <ChevronRight size={16} />
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    function SelectFilter({ value, onChange, options, placeholder }) {
+      const { c } = useTheme();
+      return (
+        <select value={value} onChange={(e) => onChange(e.target.value)} className={`${inputCls(c)} py-1.5 w-auto min-w-[120px]`}>
+          <option value="">{placeholder}</option>
+          {options.map((o) => (
+            <option key={o} value={o}>{o}</option>
+          ))}
+        </select>
+      );
+    }
+
+    /* ======================================================================
+       SIDEBAR & TOPBAR
+       ====================================================================== */
+
+    function Sidebar({ active, onSelect, mobileOpen, setMobileOpen, collapsed, setCollapsed }) {
+      const { dark, c } = useTheme();
+      return (
+        <>
+          {mobileOpen && <div className="fixed inset-0 bg-black/50 z-40 lg:hidden" onClick={() => setMobileOpen(false)} />}
+          <aside className={`fixed z-50 lg:z-30 top-0 left-0 h-full flex flex-col transition-all duration-200 ${collapsed ? "lg:w-[76px]" : "lg:w-64"} w-64 ${mobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"} border-r ${c("bg-white border-slate-200", "bg-slate-900 border-slate-800")}`}>
+            <div className={`flex items-center gap-2.5 px-4 h-16 border-b shrink-0 ${c("border-slate-100", "border-slate-800")}`}>
+              <img src={LOGO_SRC} alt={APP_NAME} className="h-9 w-auto shrink-0" style={{ filter: dark ? "invert(1)" : "none" }} />
+              {!collapsed && (
+                <div className="min-w-0">
+                  <p className={`font-bold text-sm leading-tight truncate ${c("text-slate-800", "text-slate-100")}`}>{APP_NAME}</p>
+                  <p className={`text-[11px] leading-tight ${c("text-slate-400", "text-slate-500")}`}>Monitoring Stok Ikan</p>
+                </div>
+              )}
+              <button className="ml-auto lg:hidden p-1" onClick={() => setMobileOpen(false)}>
+                <X size={18} className={c("text-slate-500", "text-slate-400")} />
+              </button>
+            </div>
+
+            <nav className="flex-1 overflow-y-auto py-3 px-2.5 space-y-1">
+              {MENUS.map((m) => {
+                const Icon = m.icon;
+                const isActive = active === m.key;
+                return (
+                  <button
+                    key={m.key}
+                    onClick={() => { onSelect(m.key); setMobileOpen(false); }}
+                    title={collapsed ? m.label : undefined}
+                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors ${
+                      isActive ? "bg-gradient-to-r from-teal-600 to-cyan-600 text-white shadow-sm shadow-teal-600/20" : c("text-slate-600 hover:bg-slate-100", "text-slate-300 hover:bg-slate-800")
+                    } ${collapsed ? "justify-center" : ""}`}
+                  >
+                    <Icon size={18} className="shrink-0" />
+                    {!collapsed && <span className="truncate">{m.label}</span>}
+                  </button>
+                );
+              })}
+            </nav>
+
+            <div className={`hidden lg:flex p-2.5 border-t ${c("border-slate-100", "border-slate-800")}`}>
+              <button onClick={() => setCollapsed((v) => !v)} className={`w-full flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-medium ${c("text-slate-500 hover:bg-slate-100", "text-slate-400 hover:bg-slate-800")}`}>
+                {collapsed ? <ChevronRight size={15} /> : <><ChevronLeft size={15} /> Ciutkan</>}
+              </button>
+            </div>
+          </aside>
+        </>
+      );
+    }
+
+    function Topbar({ title, setMobileOpen, dark, setDark }) {
+      const { c } = useTheme();
+      return (
+        <header className={`sticky top-0 z-20 h-16 flex items-center gap-3 px-4 sm:px-6 border-b backdrop-blur ${c("bg-white/90 border-slate-200", "bg-slate-900/90 border-slate-800")}`}>
+          <button onClick={() => setMobileOpen(true)} className={`lg:hidden p-2 rounded-lg ${c("hover:bg-slate-100", "hover:bg-slate-800")}`}>
+            <Menu size={20} className={c("text-slate-600", "text-slate-300")} />
+          </button>
+          <h1 className={`font-semibold text-base sm:text-lg ${c("text-slate-800", "text-slate-100")}`}>{title}</h1>
+          <div className="ml-auto flex items-center gap-2">
+            <button onClick={() => setDark((v) => !v)} className={`p-2 rounded-lg border ${c("border-slate-200 hover:bg-slate-100 text-slate-500", "border-slate-700 hover:bg-slate-800 text-slate-300")}`} title="Ganti tema">
+              {dark ? <Sun size={17} /> : <Moon size={17} />}
+            </button>
+            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-teal-500 to-cyan-500 text-white flex items-center justify-center text-xs font-bold shrink-0">FFF</div>
+          </div>
+        </header>
+      );
+    }
+
+    /* ======================================================================
+       MODUL & HALAMAN UTAMA
+       ====================================================================== */
+
+    function DashboardPage({ db }) {
+      const { c } = useTheme();
+      const { stockRecords, sales, losses } = db;
+
+      const totalKeepStock = stockRecords.reduce((a, r) => a + Math.max(0, r.keepStock), 0);
+      const totalPenjualanRp = sales.reduce((a, s) => a + s.total, 0);
+      const totalTerjualEkor = sales.reduce((a, s) => a + s.jumlah, 0);
+      const totalLossEkor = losses.reduce((a, l) => a + l.jumlahLoss, 0);
+      const totalStokMasuk = stockRecords.reduce((a, r) => a + clampNum(r.stokMasuk), 0);
+      const totalStokKeluar = stockRecords.reduce((a, r) => a + clampNum(r.stokKeluar), 0) + totalTerjualEkor + totalLossEkor;
+      const estimasiNilaiStok = stockRecords.reduce((a, r) => a + Math.max(0, r.keepStock) * getAvgPrice(sales, r.fishName), 0);
+
+      const days = lastNDays(14);
+
+      const keepStockTrend = useMemo(() => {
+        return days.map((d) => {
+          const masukKum = stockRecords.filter((r) => r.tanggal <= d).reduce((a, r) => a + r.stokAwal + r.stokMasuk, 0);
+          const keluarKum =
+            stockRecords.filter((r) => r.tanggal <= d).reduce((a, r) => a + clampNum(r.stokKeluar), 0) +
+            sales.filter((s) => s.tanggal <= d).reduce((a, s) => a + s.jumlah, 0) +
+            losses.filter((l) => l.tanggal <= d).reduce((a, l) => a + l.jumlahLoss, 0);
+          return { tanggal: formatDateShort(d), total: Math.max(0, masukKum - keluarKum) };
+        });
+      }, [stockRecords, sales, losses]);
+
+      const salesTrend = days.map((d) => ({
+        tanggal: formatDateShort(d),
+        penjualan: sales.filter((s) => s.tanggal === d).reduce((a, s) => a + s.total, 0),
+      }));
+
+      const lossTrend = days.map((d) => ({
+        tanggal: formatDateShort(d),
+        loss: losses.filter((l) => l.tanggal === d).reduce((a, l) => a + l.jumlahLoss, 0),
+      }));
+
+      const flowTrend = days.map((d) => ({
+        tanggal: formatDateShort(d),
+        masuk: stockRecords.filter((r) => r.tanggal === d).reduce((a, r) => a + clampNum(r.stokMasuk), 0),
+        keluar:
+          stockRecords.filter((r) => r.tanggal === d).reduce((a, r) => a + clampNum(r.stokKeluar), 0) +
+          sales.filter((s) => s.tanggal === d).reduce((a, s) => a + s.jumlah, 0) +
+          losses.filter((l) => l.tanggal === d).reduce((a, l) => a + l.jumlahLoss, 0),
+      }));
+
+      const activity = useMemo(() => {
+        const items = [
+          ...sales.map((s) => ({
+            id: "S" + s.id, createdAt: s.createdAt, tanggal: s.tanggal, type: "Penjualan", color: "cyan",
+            desc: `Penjualan ${s.jumlah} ekor ${s.fishName} (${s.batch}) ke ${s.customer} — ${formatCurrency(s.total)}`,
+          })),
+          ...losses.map((l) => ({
+            id: "L" + l.id, createdAt: l.createdAt, tanggal: l.tanggal, type: "Loss", color: "red",
+            desc: `Loss ${l.jumlahLoss} ekor ${l.fishName} (${l.batch}) — ${l.penyebab}`,
+          })),
+          ...stockRecords.map((r) => ({
+            id: "R" + r.id, createdAt: r.createdAt, tanggal: r.tanggal, type: "Keep Stock", color: "teal",
+            desc: `Update stok ${r.fishName} (${r.batch}) di ${r.location} — Keep Stock: ${formatNumber(r.keepStock)} ekor`,
+          })),
+        ];
+        return items.sort((a, b) => b.createdAt - a.createdAt).slice(0, 8);
+      }, [sales, losses, stockRecords]);
+
+      const gridStroke = c("#e2e8f0", "#334155");
+      const axisColor = c("#64748b", "#94a3b8");
+
+      return (
+        <div>
+          <PageHeader title="Dashboard" subtitle="Ringkasan kondisi stok dan penjualan ikan hias secara real-time." />
+
+          <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3 mb-6">
+            <StatCard icon={Boxes} label="Total Keep Stock" value={`${formatNumber(totalKeepStock)} ekor`} accent="teal" />
+            <StatCard icon={ShoppingCart} label="Total Penjualan" value={formatCurrency(totalPenjualanRp)} sub={`${formatNumber(totalTerjualEkor)} ekor terjual`} accent="cyan" />
+            <StatCard icon={AlertTriangle} label="Total Loss / Kematian" value={`${formatNumber(totalLossEkor)} ekor`} accent="red" />
+            <StatCard icon={PackagePlus} label="Total Stok Masuk" value={`${formatNumber(totalStokMasuk)} ekor`} accent="emerald" />
+            <StatCard icon={PackageMinus} label="Total Stok Keluar" value={`${formatNumber(totalStokKeluar)} ekor`} accent="amber" />
+            <StatCard icon={Wallet} label="Estimasi Nilai Stok" value={formatCurrency(estimasiNilaiStok)} accent="slate" />
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
+            <div className={`rounded-2xl border p-4 ${c("bg-white border-slate-200", "bg-slate-900 border-slate-800")}`}>
+              <p className={`text-sm font-semibold mb-3 ${c("text-slate-700", "text-slate-200")}`}>Perkembangan Keep Stock (14 hari)</p>
+              <ResponsiveContainer width="100%" height={220}>
+                <LineChart data={keepStockTrend}>
+                  <CartesianGrid strokeDasharray="3 3" stroke={gridStroke} />
+                  <XAxis dataKey="tanggal" tick={{ fontSize: 11, fill: axisColor }} />
+                  <YAxis tick={{ fontSize: 11, fill: axisColor }} />
+                  <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8 }} formatter={(v) => [`${formatNumber(v)} ekor`, "Keep Stock"]} />
+                  <Line type="monotone" dataKey="total" stroke="#0d9488" strokeWidth={2.5} dot={false} />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+
+            <div className={`rounded-2xl border p-4 ${c("bg-white border-slate-200", "bg-slate-900 border-slate-800")}`}>
+              <p className={`text-sm font-semibold mb-3 ${c("text-slate-700", "text-slate-200")}`}>Grafik Penjualan (14 hari)</p>
+              <ResponsiveContainer width="100%" height={220}>
+                <BarChart data={salesTrend}>
+                  <CartesianGrid strokeDasharray="3 3" stroke={gridStroke} />
+                  <XAxis dataKey="tanggal" tick={{ fontSize: 11, fill: axisColor }} />
+                  <YAxis tick={{ fontSize: 11, fill: axisColor }} tickFormatter={(v) => `${v / 1000}k`} />
+                  <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8 }} formatter={(v) => [formatCurrency(v), "Penjualan"]} />
+                  <Bar dataKey="penjualan" fill="#06b6d4" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+
+            <div className={`rounded-2xl border p-4 ${c("bg-white border-slate-200", "bg-slate-900 border-slate-800")}`}>
+              <p className={`text-sm font-semibold mb-3 ${c("text-slate-700", "text-slate-200")}`}>Grafik Loss (14 hari)</p>
+              <ResponsiveContainer width="100%" height={220}>
+                <BarChart data={lossTrend}>
+                  <CartesianGrid strokeDasharray="3 3" stroke={gridStroke} />
+                  <XAxis dataKey="tanggal" tick={{ fontSize: 11, fill: axisColor }} />
+                  <YAxis tick={{ fontSize: 11, fill: axisColor }} />
+                  <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8 }} formatter={(v) => [`${formatNumber(v)} ekor`, "Loss"]} />
+                  <Bar dataKey="loss" fill="#ef4444" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+
+            <div className={`rounded-2xl border p-4 ${c("bg-white border-slate-200", "bg-slate-900 border-slate-800")}`}>
+              <p className={`text-sm font-semibold mb-3 ${c("text-slate-700", "text-slate-200")}`}>Stok Masuk vs Keluar (14 hari)</p>
+              <ResponsiveContainer width="100%" height={220}>
+                <BarChart data={flowTrend}>
+                  <CartesianGrid strokeDasharray="3 3" stroke={gridStroke} />
+                  <XAxis dataKey="tanggal" tick={{ fontSize: 11, fill: axisColor }} />
+                  <YAxis tick={{ fontSize: 11, fill: axisColor }} />
+                  <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8 }} />
+                  <Legend wrapperStyle={{ fontSize: 11 }} />
+                  <Bar dataKey="masuk" name="Stok Masuk" fill="#14b8a6" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="keluar" name="Stok Keluar" fill="#f59e0b" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          <div className={`rounded-2xl border ${c("bg-white border-slate-200", "bg-slate-900 border-slate-800")}`}>
+            <div className={`px-4 py-3 border-b ${c("border-slate-100", "border-slate-800")}`}>
+              <p className={`text-sm font-semibold ${c("text-slate-700", "text-slate-200")}`}>Aktivitas Terbaru</p>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <tbody>
+                  {activity.length === 0 && (
+                    <tr>
+                      <td><EmptyState text="Belum ada aktivitas." /></td>
+                    </tr>
+                  )}
+                  {activity.map((a) => (
+                    <tr key={a.id} className={`border-t ${c("border-slate-100", "border-slate-800")}`}>
+                      <td className="px-4 py-2.5 w-28 whitespace-nowrap"><Badge color={a.color}>{a.type}</Badge></td>
+                      <td className={`px-4 py-2.5 ${c("text-slate-600", "text-slate-300")}`}>{a.desc}</td>
+                      <td className={`px-4 py-2.5 text-right w-32 whitespace-nowrap ${c("text-slate-400", "text-slate-500")}`}>{formatDate(a.tanggal)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    const emptyStockForm = {
+      tanggal: todayStr(), fishName: "", batch: "", location: "", stokAwal: 0,
+      stokMasuk: 0, stokKeluar: 0, terjual: 0, loss: 0, ukuran: "", kondisi: "Sehat", catatan: "",
+    };
+
+    function KeepStockPage({ db, setDb, toast }) {
+      const { c } = useTheme();
+      const [modalOpen, setModalOpen] = useState(false);
+      const [form, setForm] = useState(emptyStockForm);
+      const [editingId, setEditingId] = useState(null);
+      const [deleteTarget, setDeleteTarget] = useState(null);
+      const [fFish, setFFish] = useState("");
+      const [fBatch, setFBatch] = useState("");
+      const [fLoc, setFLoc] = useState("");
+      const [fFrom, setFFrom] = useState("");
+      const [fTo, setFTo] = useState("");
+
+      const fishOptions = getDistinct(db.stockRecords, "fishName").concat(db.fishSpecies).filter((v, i, a) => a.indexOf(v) === i).sort();
+      const batchOptions = getDistinct(db.stockRecords, "batch");
+      const locOptions = getDistinct(db.stockRecords, "location").concat(db.locations).filter((v, i, a) => a.indexOf(v) === i).sort();
+
+      const filteredData = db.stockRecords.filter(
+        (r) =>
+          (!fFish || r.fishName === fFish) &&
+          (!fBatch || r.batch === fBatch) &&
+          (!fLoc || r.location === fLoc) &&
+          inRange(r.tanggal, fFrom, fTo)
+      );
+
+      const openCreate = () => { setEditingId(null); setForm(emptyStockForm); setModalOpen(true); };
+      const openEdit = (row) => { setEditingId(row.id); setForm({ ...row }); setModalOpen(true); };
+
+      const handleSave = () => {
+        if (!form.tanggal || !form.fishName || !form.batch || !form.location) {
+          toast("Tanggal, Nama Ikan, Batch, dan Lokasi wajib diisi.", "error");
+          return;
+        }
+        const cleaned = {
+          ...form,
+          stokAwal: clampNum(form.stokAwal),
+          stokMasuk: clampNum(form.stokMasuk),
+          stokKeluar: clampNum(form.stokKeluar),
+          terjual: clampNum(form.terjual),
+          loss: clampNum(form.loss),
+        };
+        const withKS = withKeepStock(cleaned);
+
+        setDb((prev) => {
+          let stockRecords;
+          if (editingId) {
+            stockRecords = prev.stockRecords.map((r) => (r.id === editingId ? { ...r, ...withKS } : r));
+          } else {
+            stockRecords = [...prev.stockRecords, { ...withKS, id: uid(), createdAt: Date.now() }];
+          }
+          const fishSpecies = prev.fishSpecies.includes(withKS.fishName) ? prev.fishSpecies : [...prev.fishSpecies, withKS.fishName];
+          const locations = prev.locations.includes(withKS.location) ? prev.locations : [...prev.locations, withKS.location];
+          return { ...prev, stockRecords, fishSpecies, locations };
+        });
+        toast(editingId ? "Data Keep Stock berhasil diperbarui." : "Data Keep Stock berhasil ditambahkan.");
+        setModalOpen(false);
+      };
+
+      const quickAdjust = (row, delta) => {
+        const next = { ...row, stokMasuk: Math.max(0, clampNum(row.stokMasuk) + delta) };
+        if (recalcKeepStock(next) < 0) {
+          toast("Stok tidak boleh negatif.", "error");
+          return;
+        }
+        setDb((prev) => ({ ...prev, stockRecords: prev.stockRecords.map((r) => (r.id === row.id ? withKeepStock(next) : r)) }));
+      };
+
+      const handleDelete = () => {
+        setDb((prev) => ({ ...prev, stockRecords: prev.stockRecords.filter((r) => r.id !== deleteTarget.id) }));
+        toast("Data Keep Stock berhasil dihapus.");
+        setDeleteTarget(null);
+      };
+
+      const columns = [
+        { key: "tanggal", label: "Tanggal", sortable: true, render: (r) => formatDate(r.tanggal) },
+        { key: "fishName", label: "Nama Ikan", sortable: true },
+        { key: "batch", label: "Batch", sortable: true, render: (r) => <span className="font-mono text-xs">{r.batch}</span> },
+        { key: "location", label: "Lokasi", sortable: true },
+        { key: "stokAwal", label: "Stok Awal", sortable: true },
+        { key: "stokMasuk", label: "Masuk (+/-)", sortable: true, render: (r) => (
+          <span className="inline-flex items-center gap-1.5">
+            <button onClick={() => quickAdjust(r, -1)} className="w-6 h-6 rounded-md border text-sm leading-none hover:bg-slate-100">−</button>
+            <span className="min-w-[2ch] text-center">{formatNumber(r.stokMasuk)}</span>
+            <button onClick={() => quickAdjust(r, 1)} className="w-6 h-6 rounded-md border text-sm leading-none hover:bg-slate-100">+</button>
+          </span>
+        ) },
+        { key: "stokKeluar", label: "Keluar", sortable: true },
+        { key: "terjual", label: "Terjual", sortable: true },
+        { key: "loss", label: "Loss", sortable: true },
+        { key: "keepStock", label: "Keep Stock", sortable: true, render: (r) => <span className={`font-semibold ${c("text-teal-700", "text-teal-400")}`}>{formatNumber(r.keepStock)}</span> },
+        { key: "ukuran", label: "Ukuran" },
+        { key: "kondisi", label: "Kondisi", render: (r) => <Badge color={r.kondisi === "Sehat" ? "green" : r.kondisi === "Karantina" ? "yellow" : "red"}>{r.kondisi}</Badge> },
+      ];
+
+      const preview = recalcKeepStock(form);
+
+      return (
+        <div>
+          <PageHeader
+            title="Keep Stock"
+            subtitle="Catat dan pantau pergerakan stok ikan per batch dan lokasi."
+            actions={
+              <button onClick={openCreate} className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium bg-gradient-to-r from-teal-600 to-cyan-600 text-white hover:opacity-90">
+                <Plus size={16} /> Tambah Data
+              </button>
+            }
+          />
+
+          <DataTable
+            columns={columns}
+            data={filteredData}
+            searchKeys={["fishName", "batch", "location", "catatan"]}
+            onEdit={openEdit}
+            onDelete={setDeleteTarget}
+            emptyText="Belum ada data Keep Stock."
+            filters={
+              <>
+                <SelectFilter value={fFish} onChange={setFFish} options={fishOptions} placeholder="Semua Ikan" />
+                <SelectFilter value={fBatch} onChange={setFBatch} options={batchOptions} placeholder="Semua Batch" />
+                <SelectFilter value={fLoc} onChange={setFLoc} options={locOptions} placeholder="Semua Lokasi" />
+                <input type="date" value={fFrom} onChange={(e) => setFFrom(e.target.value)} className={`${inputCls(c)} py-1.5 w-auto`} />
+                <input type="date" value={fTo} onChange={(e) => setFTo(e.target.value)} className={`${inputCls(c)} py-1.5 w-auto`} />
+                {(fFish || fBatch || fLoc || fFrom || fTo) && (
+                  <button onClick={() => { setFFish(""); setFBatch(""); setFLoc(""); setFFrom(""); setFTo(""); }} className={`p-1.5 rounded-lg ${c("hover:bg-slate-100 text-slate-500", "hover:bg-slate-800 text-slate-400")}`} title="Reset filter">
+                    <RotateCcw size={15} />
+                  </button>
+                )}
+              </>
+            }
+          />
+
+          {modalOpen && (
+            <Modal
+              title={editingId ? "Edit Data Keep Stock" : "Tambah Data Keep Stock"}
+              onClose={() => setModalOpen(false)}
+              wide
+              footer={
+                <>
+                  <button onClick={() => setModalOpen(false)} className={`px-4 py-2 rounded-lg text-sm font-medium border ${c("border-slate-200 text-slate-600 hover:bg-slate-50", "border-slate-700 text-slate-300 hover:bg-slate-800")}`}>Batal</button>
+                  <button onClick={handleSave} className="px-4 py-2 rounded-lg text-sm font-medium bg-teal-600 text-white hover:bg-teal-700">Simpan</button>
+                </>
+              }
+            >
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4">
+                <Field label="Tanggal" required><input type="date" value={form.tanggal} onChange={(e) => setForm({ ...form, tanggal: e.target.value })} className={inputCls(c)} /></Field>
+                <Field label="Nama Ikan" required>
+                  <input list="fishlist" value={form.fishName} onChange={(e) => setForm({ ...form, fishName: e.target.value })} className={inputCls(c)} placeholder="mis. Pleco L144" />
+                  <datalist id="fishlist">{fishOptions.map((f) => <option key={f} value={f} />)}</datalist>
+                </Field>
+                <Field label="Kode / Batch" required><input value={form.batch} onChange={(e) => setForm({ ...form, batch: e.target.value })} className={inputCls(c)} placeholder="mis. PLC144-A" /></Field>
+                <Field label="Lokasi Penyimpanan" required>
+                  <input list="loclist" value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} className={inputCls(c)} placeholder="mis. Akuarium A1" />
+                  <datalist id="loclist">{locOptions.map((f) => <option key={f} value={f} />)}</datalist>
+                </Field>
+                <Field label="Stok Awal"><input type="number" min="0" value={form.stokAwal} onChange={(e) => setForm({ ...form, stokAwal: e.target.value })} className={inputCls(c)} /></Field>
+                <Field label="Stok Masuk"><input type="number" min="0" value={form.stokMasuk} onChange={(e) => setForm({ ...form, stokMasuk: e.target.value })} className={inputCls(c)} /></Field>
+                <Field label="Stok Keluar (selain terjual)"><input type="number" min="0" value={form.stokKeluar} onChange={(e) => setForm({ ...form, stokKeluar: e.target.value })} className={inputCls(c)} /></Field>
+                <Field label="Ukuran Ikan"><input value={form.ukuran} onChange={(e) => setForm({ ...form, ukuran: e.target.value })} className={inputCls(c)} placeholder="mis. 5-7 cm" /></Field>
+                <Field label="Jumlah Terjual" hint="Terisi otomatis dari modul Penjualan"><input type="number" min="0" value={form.terjual} onChange={(e) => setForm({ ...form, terjual: e.target.value })} className={inputCls(c)} /></Field>
+                <Field label="Jumlah Loss / Mati" hint="Terisi otomatis dari modul Data Loss"><input type="number" min="0" value={form.loss} onChange={(e) => setForm({ ...form, loss: e.target.value })} className={inputCls(c)} /></Field>
+                <Field label="Kondisi Ikan">
+                  <select value={form.kondisi} onChange={(e) => setForm({ ...form, kondisi: e.target.value })} className={inputCls(c)}>
+                    {KONDISI_OPTIONS.map((k) => <option key={k} value={k}>{k}</option>)}
+                  </select>
+                </Field>
+                <div className="sm:col-span-2">
+                  <Field label="Catatan"><textarea value={form.catatan} onChange={(e) => setForm({ ...form, catatan: e.target.value })} className={inputCls(c)} rows={2} /></Field>
+                </div>
+              </div>
+              <div className={`rounded-xl px-4 py-3 flex items-center justify-between ${c("bg-teal-50", "bg-teal-500/10")}`}>
+                <span className={`text-sm font-medium ${c("text-teal-800", "text-teal-300")}`}>Keep Stock Akhir (otomatis)</span>
+                <span className={`text-lg font-bold ${c("text-teal-700", "text-teal-400")}`}>{formatNumber(preview)} ekor</span>
+              </div>
+            </Modal>
+          )}
+
+          {deleteTarget && (
+            <ConfirmDialog message={`Yakin ingin menghapus data Keep Stock "${deleteTarget.fishName}" batch ${deleteTarget.batch}?`} onConfirm={handleDelete} onCancel={() => setDeleteTarget(null)} />
+          )}
+        </div>
+      );
+    }
+
+    const emptySaleForm = {
+      tanggal: todayStr(), customer: "", fishName: "", batch: "",
+      jumlah: 1, hargaPerEkor: 0, metodePembayaran: "Tunai", statusPembayaran: "Lunas", catatan: "",
+    };
+
+    function SalesPage({ db, setDb, toast }) {
+      const { c } = useTheme();
+      const [modalOpen, setModalOpen] = useState(false);
+      const [form, setForm] = useState(emptySaleForm);
+      const [editingSale, setEditingSale] = useState(null);
+      const [deleteTarget, setDeleteTarget] = useState(null);
+      const [fFish, setFFish] = useState("");
+      const [fStatus, setFStatus] = useState("");
+      const [fFrom, setFFrom] = useState("");
+      const [fTo, setFTo] = useState("");
+
+      const fishOptions = getDistinct(db.stockRecords, "fishName");
+      const batchForFish = form.fishName ? getDistinct(db.stockRecords.filter((r) => r.fishName === form.fishName), "batch") : getDistinct(db.stockRecords, "batch");
+      const customerOptions = db.customers;
+
+      const filteredData = db.sales.filter(
+        (s) => (!fFish || s.fishName === fFish) && (!fStatus || s.statusPembayaran === fStatus) && inRange(s.tanggal, fFrom, fTo)
+      );
+
+      const openCreate = () => { setEditingSale(null); setForm(emptySaleForm); setModalOpen(true); };
+      const openEdit = (row) => { setEditingSale(row); setForm({ ...row }); setModalOpen(true); };
+
+      useEffect(() => {
+        if (modalOpen && !editingSale && form.fishName) {
+          setForm((f) => (f.hargaPerEkor ? f : { ...f, hargaPerEkor: getAvgPrice(db.sales, f.fishName) }));
+        }
+      }, [form.fishName, modalOpen, editingSale, db.sales]);
+
+      const handleSave = () => {
+        if (!form.tanggal || !form.customer || !form.fishName || !form.batch || !form.jumlah || !form.hargaPerEkor) {
+          toast("Tanggal, Customer, Nama Ikan, Batch, Jumlah, dan Harga wajib diisi.", "error");
+          return;
+        }
+        const jumlah = clampNum(form.jumlah);
+        const hargaPerEkor = clampNum(form.hargaPerEkor);
+        const total = jumlah * hargaPerEkor;
+
+        setDb((prev) => {
+          let stockRecords = prev.stockRecords;
+          let matched = true;
+
+          if (editingSale) {
+            const rev = adjustStockForSale(stockRecords, editingSale.fishName, editingSale.batch, -editingSale.jumlah);
+            stockRecords = rev.stockRecords;
+            const app = adjustStockForSale(stockRecords, form.fishName, form.batch, jumlah);
+            stockRecords = app.stockRecords;
+            matched = app.matched;
+          } else {
+            const app = adjustStockForSale(stockRecords, form.fishName, form.batch, jumlah);
+            stockRecords = app.stockRecords;
+            matched = app.matched;
+          }
+
+          const sales = editingSale
+            ? prev.sales.map((s) => (s.id === editingSale.id ? { ...s, ...form, jumlah, hargaPerEkor, total } : s))
+            : [...prev.sales, { ...form, jumlah, hargaPerEkor, total, id: uid(), createdAt: Date.now() }];
+
+          const customers = prev.customers.includes(form.customer) ? prev.customers : [...prev.customers, form.customer];
+
+          if (!matched) {
+            setTimeout(() => toast(`Batch "${form.batch}" tidak ditemukan di Keep Stock. Stok belum otomatis berkurang.`, "warning"), 50);
+          }
+
+          return { ...prev, stockRecords, sales, customers };
+        });
+
+        toast(editingSale ? "Data penjualan berhasil diperbarui." : "Penjualan berhasil disimpan & stok telah diperbarui.");
+        setModalOpen(false);
+      };
+
+      const quickAdjustSale = (sale, delta) => {
+        const newJumlah = clampNum(sale.jumlah) + delta;
+        if (newJumlah < 1) {
+          toast("Jumlah minimal 1. Hapus transaksi bila ingin membatalkan.", "error");
+          return;
+        }
+        const row = db.stockRecords.find((r) => r.fishName === sale.fishName && r.batch === sale.batch);
+        if (row && delta > 0 && row.keepStock < delta) {
+          toast("Stok tidak cukup.", "error");
+          return;
+        }
+        setDb((prev) => {
+          const { stockRecords } = adjustStockForSale(prev.stockRecords, sale.fishName, sale.batch, delta);
+          const sales = prev.sales.map((x) =>
+            x.id === sale.id ? { ...x, jumlah: newJumlah, total: newJumlah * clampNum(x.hargaPerEkor) } : x
+          );
+          return { ...prev, stockRecords, sales };
+        });
+      };
+
+      const handleDelete = () => {
+        setDb((prev) => {
+          const { stockRecords } = adjustStockForSale(prev.stockRecords, deleteTarget.fishName, deleteTarget.batch, -deleteTarget.jumlah);
+          return { ...prev, stockRecords, sales: prev.sales.filter((s) => s.id !== deleteTarget.id) };
+        });
+        toast("Data penjualan berhasil dihapus dan stok dikembalikan.");
+        setDeleteTarget(null);
+      };
+
+      const statusColor = (s) => (s === "Lunas" ? "green" : s === "DP" ? "yellow" : "red");
+
+      const columns = [
+        { key: "tanggal", label: "Tanggal", sortable: true, render: (r) => formatDate(r.tanggal) },
+        { key: "customer", label: "Customer", sortable: true },
+        { key: "fishName", label: "Nama Ikan", sortable: true },
+        { key: "batch", label: "Batch", render: (r) => <span className="font-mono text-xs">{r.batch}</span> },
+        { key: "jumlah", label: "Jumlah (+/-)", sortable: true, render: (r) => (
+          <span className="inline-flex items-center gap-1.5">
+            <button onClick={() => quickAdjustSale(r, -1)} className="w-6 h-6 rounded-md border text-sm leading-none hover:bg-slate-100">−</button>
+            <span className="min-w-[2ch] text-center">{formatNumber(r.jumlah)}</span>
+            <button onClick={() => quickAdjustSale(r, 1)} className="w-6 h-6 rounded-md border text-sm leading-none hover:bg-slate-100">+</button>
+          </span>
+        ) },
+        { key: "hargaPerEkor", label: "Harga/Ekor", sortable: true, render: (r) => formatCurrency(r.hargaPerEkor) },
+        { key: "total", label: "Total", sortable: true, render: (r) => <span className="font-semibold">{formatCurrency(r.total)}</span> },
+        { key: "metodePembayaran", label: "Metode" },
+        { key: "statusPembayaran", label: "Status", render: (r) => <Badge color={statusColor(r.statusPembayaran)}>{r.statusPembayaran}</Badge> },
+      ];
+
+      const total = clampNum(form.jumlah) * clampNum(form.hargaPerEkor);
+
+      return (
+        <div>
+          <PageHeader
+            title="Sales / Penjualan"
+            subtitle="Catat transaksi penjualan — Keep Stock akan otomatis berkurang."
+            actions={
+              <button onClick={openCreate} className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium bg-gradient-to-r from-teal-600 to-cyan-600 text-white hover:opacity-90">
+                <Plus size={16} /> Tambah Penjualan
+              </button>
+            }
+          />
+
+          <DataTable
+            columns={columns}
+            data={filteredData}
+            searchKeys={["customer", "fishName", "batch", "catatan"]}
+            onEdit={openEdit}
+            onDelete={setDeleteTarget}
+            emptyText="Belum ada data penjualan."
+            filters={
+              <>
+                <SelectFilter value={fFish} onChange={setFFish} options={fishOptions} placeholder="Semua Ikan" />
+                <SelectFilter value={fStatus} onChange={setFStatus} options={STATUS_BAYAR} placeholder="Semua Status" />
+                <input type="date" value={fFrom} onChange={(e) => setFFrom(e.target.value)} className={`${inputCls(c)} py-1.5 w-auto`} />
+                <input type="date" value={fTo} onChange={(e) => setFTo(e.target.value)} className={`${inputCls(c)} py-1.5 w-auto`} />
+              </>
+            }
+          />
+
+          {modalOpen && (
+            <Modal
+              title={editingSale ? "Edit Penjualan" : "Tambah Penjualan"}
+              onClose={() => setModalOpen(false)}
+              wide
+              footer={
+                <>
+                  <button onClick={() => setModalOpen(false)} className={`px-4 py-2 rounded-lg text-sm font-medium border ${c("border-slate-200 text-slate-600 hover:bg-slate-50", "border-slate-700 text-slate-300 hover:bg-slate-800")}`}>Batal</button>
+                  <button onClick={handleSave} className="px-4 py-2 rounded-lg text-sm font-medium bg-teal-600 text-white hover:bg-teal-700">Simpan</button>
+                </>
+              }
+            >
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4">
+                <Field label="Tanggal" required><input type="date" value={form.tanggal} onChange={(e) => setForm({ ...form, tanggal: e.target.value })} className={inputCls(c)} /></Field>
+                <Field label="Customer" required>
+                  <input list="custlist" value={form.customer} onChange={(e) => setForm({ ...form, customer: e.target.value })} className={inputCls(c)} placeholder="Nama pembeli" />
+                  <datalist id="custlist">{customerOptions.map((f) => <option key={f} value={f} />)}</datalist>
+                </Field>
+                <Field label="Nama Ikan" required>
+                  <input list="fishlist2" value={form.fishName} onChange={(e) => setForm({ ...form, fishName: e.target.value })} className={inputCls(c)} />
+                  <datalist id="fishlist2">{fishOptions.map((f) => <option key={f} value={f} />)}</datalist>
+                </Field>
+                <Field label="Kode / Batch" required>
+                  <input list="batchlist2" value={form.batch} onChange={(e) => setForm({ ...form, batch: e.target.value })} className={inputCls(c)} />
+                  <datalist id="batchlist2">{batchForFish.map((f) => <option key={f} value={f} />)}</datalist>
+                </Field>
+                <Field label="Jumlah (ekor)" required><input type="number" min="1" value={form.jumlah} onChange={(e) => setForm({ ...form, jumlah: e.target.value })} className={inputCls(c)} /></Field>
+                <Field label="Harga per Ekor" required><input type="number" min="0" value={form.hargaPerEkor} onChange={(e) => setForm({ ...form, hargaPerEkor: e.target.value })} className={inputCls(c)} /></Field>
+                <Field label="Metode Pembayaran">
+                  <select value={form.metodePembayaran} onChange={(e) => setForm({ ...form, metodePembayaran: e.target.value })} className={inputCls(c)}>
+                    {METODE_BAYAR.map((m) => <option key={m} value={m}>{m}</option>)}
+                  </select>
+                </Field>
+                <Field label="Status Pembayaran">
+                  <select value={form.statusPembayaran} onChange={(e) => setForm({ ...form, statusPembayaran: e.target.value })} className={inputCls(c)}>
+                    {STATUS_BAYAR.map((m) => <option key={m} value={m}>{m}</option>)}
+                  </select>
+                </Field>
+                <div className="sm:col-span-2">
+                  <Field label="Catatan"><textarea value={form.catatan} onChange={(e) => setForm({ ...form, catatan: e.target.value })} className={inputCls(c)} rows={2} /></Field>
+                </div>
+              </div>
+              <div className={`rounded-xl px-4 py-3 flex items-center justify-between ${c("bg-cyan-50", "bg-cyan-500/10")}`}>
+                <span className={`text-sm font-medium ${c("text-cyan-800", "text-cyan-300")}`}>Total Harga (otomatis)</span>
+                <span className={`text-lg font-bold ${c("text-cyan-700", "text-cyan-400")}`}>{formatCurrency(total)}</span>
+              </div>
+            </Modal>
+          )}
+
+          {deleteTarget && (
+            <ConfirmDialog message={`Yakin ingin menghapus transaksi penjualan ${deleteTarget.fishName} untuk ${deleteTarget.customer}? Stok akan dikembalikan.`} onConfirm={handleDelete} onCancel={() => setDeleteTarget(null)} />
+          )}
+        </div>
+      );
+    }
+
+    const emptyLossForm = {
+      tanggal: todayStr(), fishName: "", batch: "", location: "",
+      jumlahLoss: 1, penyebab: "Tidak Diketahui", ukuran: "", kondisi: "Mati", catatan: "",
+    };
+
+    function RankedList({ title, data }) {
+      const { c } = useTheme();
+      const max = Math.max(1, ...data.map((d) => d.value));
+      return (
+        <div className={`rounded-2xl border p-4 ${c("bg-white border-slate-200", "bg-slate-900 border-slate-800")}`}>
+          <p className={`text-sm font-semibold mb-3 ${c("text-slate-700", "text-slate-200")}`}>{title}</p>
+          {data.length === 0 && <p className={`text-xs ${c("text-slate-400", "text-slate-500")}`}>Belum ada data.</p>}
+          <div className="space-y-2.5">
+            {data.map((d) => (
+              <div key={d.label}>
+                <div className="flex justify-between text-xs mb-1">
+                  <span className={c("text-slate-600", "text-slate-300")}>{d.label}</span>
+                  <span className={`font-medium ${c("text-slate-700", "text-slate-200")}`}>{formatNumber(d.value)} ekor</span>
+                </div>
+                <div className={`h-1.5 rounded-full ${c("bg-slate-100", "bg-slate-800")}`}>
+                  <div className="h-1.5 rounded-full bg-gradient-to-r from-red-500 to-amber-500" style={{ width: `${(d.value / max) * 100}%` }} />
+                </div>
               </div>
             ))}
           </div>
-        </Modal>
-      )}
-    </div>
-  );
-}
-
-function LaporanPage({ db, toast }) {
-  const { c } = useTheme();
-  const [range, setRange] = useState("bulan");
-  const [customFrom, setCustomFrom] = useState(daysAgo(29));
-  const [customTo, setCustomTo] = useState(todayStr());
-  const [fFish, setFFish] = useState("");
-  const [fBatch, setFBatch] = useState("");
-  const [fLoc, setFLoc] = useState("");
-
-  const fishOptions = getDistinct(db.stockRecords, "fishName");
-  const batchOptions = getDistinct(db.stockRecords, "batch");
-  const locOptions = getDistinct(db.stockRecords, "location");
-
-  const { from, to } = useMemo(() => {
-    const today = todayStr();
-    if (range === "hari") return { from: today, to: today };
-    if (range === "minggu") return { from: daysAgo(6), to: today };
-    if (range === "bulan") return { from: daysAgo(29), to: today };
-    return { from: customFrom, to: customTo };
-  }, [range, customFrom, customTo]);
-
-  const matchDim = (r) => (!fFish || r.fishName === fFish) && (!fBatch || r.batch === fBatch) && (!fLoc || !r.location || r.location === fLoc);
-
-  const stockF = db.stockRecords.filter((r) => matchDim(r) && inRange(r.tanggal, from, to));
-  const salesF = db.sales.filter((s) => (!fFish || s.fishName === fFish) && (!fBatch || s.batch === fBatch) && inRange(s.tanggal, from, to));
-  const lossF = db.losses.filter((l) => matchDim(l) && inRange(l.tanggal, from, to));
-
-  const dateList = useMemo(() => {
-    const out = [];
-    let d = new Date(from + "T00:00:00");
-    const end = new Date(to + "T00:00:00");
-    while (d <= end) {
-      out.push(d.toISOString().slice(0, 10));
-      d.setDate(d.getDate() + 1);
+        </div>
+      );
     }
-    return out;
-  }, [from, to]);
 
-  const reportRows = dateList.map((d) => {
-    const stokMasuk = stockF.filter((r) => r.tanggal === d).reduce((a, r) => a + r.stokMasuk, 0);
-    const stokKeluarManual = stockF.filter((r) => r.tanggal === d).reduce((a, r) => a + r.stokKeluar, 0);
-    const penjualanEkor = salesF.filter((s) => s.tanggal === d).reduce((a, s) => a + s.jumlah, 0);
-    const nilaiPenjualan = salesF.filter((s) => s.tanggal === d).reduce((a, s) => a + s.total, 0);
-    const lossEkor = lossF.filter((l) => l.tanggal === d).reduce((a, l) => a + l.jumlahLoss, 0);
-    const stokKeluar = stokKeluarManual + penjualanEkor + lossEkor;
+    function LossPage({ db, setDb, toast }) {
+      const { c } = useTheme();
+      const [modalOpen, setModalOpen] = useState(false);
+      const [form, setForm] = useState(emptyLossForm);
+      const [editingLoss, setEditingLoss] = useState(null);
+      const [deleteTarget, setDeleteTarget] = useState(null);
+      const [fFish, setFFish] = useState("");
+      const [fPenyebab, setFPenyebab] = useState("");
+      const [fFrom, setFFrom] = useState("");
+      const [fTo, setFTo] = useState("");
 
-    const masukKum = db.stockRecords.filter((r) => matchDim(r) && r.tanggal <= d).reduce((a, r) => a + r.stokAwal + r.stokMasuk, 0);
-    const keluarKum =
-      db.stockRecords.filter((r) => matchDim(r) && r.tanggal <= d).reduce((a, r) => a + r.stokKeluar, 0) +
-      db.sales.filter((s) => (!fFish || s.fishName === fFish) && (!fBatch || s.batch === fBatch) && s.tanggal <= d).reduce((a, s) => a + s.jumlah, 0) +
-      db.losses.filter((l) => matchDim(l) && l.tanggal <= d).reduce((a, l) => a + l.jumlahLoss, 0);
-    const keepStock = Math.max(0, masukKum - keluarKum);
-    const nilaiStok = keepStock * getAvgPrice(db.sales, fFish || (fishOptions[0] || ""));
+      const fishOptions = getDistinct(db.stockRecords, "fishName");
+      const batchForFish = form.fishName ? getDistinct(db.stockRecords.filter((r) => r.fishName === form.fishName), "batch") : getDistinct(db.stockRecords, "batch");
+      const locOptions = getDistinct(db.stockRecords, "location");
 
-    return {
-      tanggal: d, tanggalLabel: formatDate(d), stokMasuk, stokKeluar,
-      penjualanEkor, nilaiPenjualan, loss: lossEkor, keepStock, nilaiStok,
-    };
-  });
+      const today = todayStr();
+      const thisMonth = today.slice(0, 7);
+      const totalLossHariIni = db.losses.filter((l) => l.tanggal === today).reduce((a, l) => a + l.jumlahLoss, 0);
+      const totalLossBulanIni = db.losses.filter((l) => l.tanggal.slice(0, 7) === thisMonth).reduce((a, l) => a + l.jumlahLoss, 0);
 
-  const totals = reportRows.reduce(
-    (a, r) => ({
-      stokMasuk: a.stokMasuk + r.stokMasuk,
-      stokKeluar: a.stokKeluar + r.stokKeluar,
-      penjualanEkor: a.penjualanEkor + r.penjualanEkor,
-      nilaiPenjualan: a.nilaiPenjualan + r.nilaiPenjualan,
-      loss: a.loss + r.loss,
-    }),
-    { stokMasuk: 0, stokKeluar: 0, penjualanEkor: 0, nilaiPenjualan: 0, loss: 0 }
-  );
-  const lastKeepStock = reportRows.length ? reportRows[reportRows.length - 1].keepStock : 0;
-  const lastNilaiStok = reportRows.length ? reportRows[reportRows.length - 1].nilaiStok : 0;
+      const groupSum = (key) => {
+        const map = {};
+        db.losses.forEach((l) => (map[l[key]] = (map[l[key]] || 0) + l.jumlahLoss));
+        return Object.entries(map).map(([label, value]) => ({ label, value })).sort((a, b) => b.value - a.value).slice(0, 6);
+      };
 
-  const headers = [
-    { key: "tanggalLabel", label: "Tanggal" },
-    { key: "stokMasuk", label: "Stok Masuk" },
-    { key: "stokKeluar", label: "Stok Keluar" },
-    { key: "penjualanEkor", label: "Penjualan (ekor)" },
-    { key: "nilaiPenjualan", label: "Nilai Penjualan (Rp)" },
-    { key: "loss", label: "Loss" },
-    { key: "keepStock", label: "Keep Stock" },
-    { key: "nilaiStok", label: "Nilai Stok (Rp)" },
-  ];
+      const filteredData = db.losses.filter(
+        (l) => (!fFish || l.fishName === fFish) && (!fPenyebab || l.penyebab === fPenyebab) && inRange(l.tanggal, fFrom, fTo)
+      );
 
-  const exportCSV = () => {
-    const csv = toCSV(reportRows, headers);
-    downloadBlob(csv, `laporan-stok-ikan_${from}_${to}.csv`, "text/csv;charset=utf-8;");
-    toast("Laporan berhasil diexport ke CSV.");
-  };
+      const openCreate = () => { setEditingLoss(null); setForm(emptyLossForm); setModalOpen(true); };
+      const openEdit = (row) => { setEditingLoss(row); setForm({ ...row }); setModalOpen(true); };
 
-  const exportExcel = () => {
-    try {
-      const sheetData = reportRows.map((r) => {
-        const o = {};
-        headers.forEach((h) => (o[h.label] = r[h.key]));
-        return o;
-      });
-      const ws = XLSX.utils.json_to_sheet(sheetData);
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, "Laporan");
-      XLSX.writeFile(wb, `laporan-stok-ikan_${from}_${to}.xlsx`);
-      toast("Laporan berhasil diexport ke Excel.");
-    } catch {
-      toast("Gagal export Excel.", "error");
-    }
-  };
-
-  const handlePrint = () => window.print();
-
-  const quickBtn = (key, label) => (
-    <button
-      onClick={() => setRange(key)}
-      className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition ${
-        range === key
-          ? "bg-teal-600 border-teal-600 text-white"
-          : c("border-slate-200 text-slate-600 hover:bg-slate-50", "border-slate-700 text-slate-300 hover:bg-slate-800")
-      }`}
-    >
-      {label}
-    </button>
-  );
-
-  return (
-    <div>
-      <PageHeader
-        title="Laporan"
-        subtitle="Rekap stok masuk, keluar, penjualan, loss, dan nilai stok berdasarkan periode."
-        actions={
-          <>
-            <button onClick={exportCSV} className={`flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-sm font-medium border ${c("border-slate-200 text-slate-600 hover:bg-slate-50", "border-slate-700 text-slate-300 hover:bg-slate-800")}`}><Download size={15} /> CSV</button>
-            <button onClick={exportExcel} className={`flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-sm font-medium border ${c("border-slate-200 text-slate-600 hover:bg-slate-50", "border-slate-700 text-slate-300 hover:bg-slate-800")}`}><Download size={15} /> Excel</button>
-            <button onClick={handlePrint} className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-sm font-medium bg-gradient-to-r from-teal-600 to-cyan-600 text-white hover:opacity-90"><Printer size={15} /> Print</button>
-          </>
+      const handleSave = () => {
+        if (!form.tanggal || !form.fishName || !form.batch || !form.location || !form.jumlahLoss) {
+          toast("Tanggal, Nama Ikan, Batch, Lokasi, dan Jumlah Loss wajib diisi.", "error");
+          return;
         }
-      />
+        const jumlahLoss = clampNum(form.jumlahLoss);
 
-      <div className={`no-print flex flex-wrap items-center gap-2 mb-4 rounded-xl border p-3 ${c("bg-white border-slate-200", "bg-slate-900 border-slate-800")}`}>
-        <Filter size={15} className={c("text-slate-400", "text-slate-500")} />
-        {quickBtn("hari", "Hari Ini")}
-        {quickBtn("minggu", "Minggu Ini")}
-        {quickBtn("bulan", "Bulan Ini")}
-        {quickBtn("custom", "Custom")}
-        {range === "custom" && (
-          <>
-            <input type="date" value={customFrom} onChange={(e) => setCustomFrom(e.target.value)} className={`${inputCls(c)} py-1.5 w-auto`} />
-            <span className={c("text-slate-400", "text-slate-500")}>s/d</span>
-            <input type="date" value={customTo} onChange={(e) => setCustomTo(e.target.value)} className={`${inputCls(c)} py-1.5 w-auto`} />
-          </>
-        )}
-        <span className={`mx-1 h-5 border-l ${c("border-slate-200", "border-slate-700")}`} />
-        <SelectFilter value={fFish} onChange={setFFish} options={fishOptions} placeholder="Semua Ikan" />
-        <SelectFilter value={fBatch} onChange={setFBatch} options={batchOptions} placeholder="Semua Batch" />
-        <SelectFilter value={fLoc} onChange={setFLoc} options={locOptions} placeholder="Semua Lokasi" />
-      </div>
+        setDb((prev) => {
+          let stockRecords = prev.stockRecords;
+          let matched = true;
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
-        <StatCard icon={PackagePlus} label="Total Stok Masuk" value={`${formatNumber(totals.stokMasuk)} ekor`} accent="emerald" />
-        <StatCard icon={PackageMinus} label="Total Stok Keluar" value={`${formatNumber(totals.stokKeluar)} ekor`} accent="amber" />
-        <StatCard icon={ShoppingCart} label="Nilai Penjualan" value={formatCurrency(totals.nilaiPenjualan)} sub={`${formatNumber(totals.penjualanEkor)} ekor`} accent="cyan" />
-        <StatCard icon={Wallet} label="Nilai Stok Akhir Periode" value={formatCurrency(lastNilaiStok)} sub={`${formatNumber(lastKeepStock)} ekor`} accent="teal" />
-      </div>
-
-      <div className={`print-area rounded-2xl border overflow-x-auto ${c("bg-white border-slate-200", "bg-slate-900 border-slate-800")}`}>
-        <table className="w-full text-sm">
-          <thead>
-            <tr className={c("bg-slate-50", "bg-slate-800/60")}>
-              {headers.map((h) => (
-                <th key={h.key} className={`text-left px-3 py-2.5 text-xs font-semibold uppercase whitespace-nowrap ${c("text-slate-500", "text-slate-400")}`}>{h.label}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {reportRows.length === 0 && (
-              <tr>
-                <td colSpan={headers.length}><EmptyState text="Tidak ada data pada periode ini." /></td>
-              </tr>
-            )}
-            {reportRows.map((r) => (
-              <tr key={r.tanggal} className={`border-t ${c("border-slate-100", "border-slate-800")}`}>
-                <td className={`px-3 py-2 whitespace-nowrap ${c("text-slate-700", "text-slate-200")}`}>{r.tanggalLabel}</td>
-                <td className={`px-3 py-2 ${c("text-slate-600", "text-slate-300")}`}>{formatNumber(r.stokMasuk)}</td>
-                <td className={`px-3 py-2 ${c("text-slate-600", "text-slate-300")}`}>{formatNumber(r.stokKeluar)}</td>
-                <td className={`px-3 py-2 ${c("text-slate-600", "text-slate-300")}`}>{formatNumber(r.penjualanEkor)}</td>
-                <td className={`px-3 py-2 ${c("text-slate-600", "text-slate-300")}`}>{formatCurrency(r.nilaiPenjualan)}</td>
-                <td className="px-3 py-2 text-red-600">{formatNumber(r.loss)}</td>
-                <td className={`px-3 py-2 font-semibold ${c("text-slate-700", "text-slate-200")}`}>{formatNumber(r.keepStock)}</td>
-                <td className={`px-3 py-2 ${c("text-slate-600", "text-slate-300")}`}>{formatCurrency(r.nilaiStok)}</td>
-              </tr>
-            ))}
-          </tbody>
-          {reportRows.length > 0 && (
-            <tfoot>
-              <tr className={`border-t-2 font-semibold ${c("border-slate-200 bg-slate-50", "border-slate-700 bg-slate-800/60")}`}>
-                <td className={`px-3 py-2.5 ${c("text-slate-700", "text-slate-200")}`}>Total</td>
-                <td className={`px-3 py-2.5 ${c("text-slate-700", "text-slate-200")}`}>{formatNumber(totals.stokMasuk)}</td>
-                <td className={`px-3 py-2.5 ${c("text-slate-700", "text-slate-200")}`}>{formatNumber(totals.stokKeluar)}</td>
-                <td className={`px-3 py-2.5 ${c("text-slate-700", "text-slate-200")}`}>{formatNumber(totals.penjualanEkor)}</td>
-                <td className={`px-3 py-2.5 ${c("text-slate-700", "text-slate-200")}`}>{formatCurrency(totals.nilaiPenjualan)}</td>
-                <td className="px-3 py-2.5 text-red-600">{formatNumber(totals.loss)}</td>
-                <td className={`px-3 py-2.5 ${c("text-slate-700", "text-slate-200")}`}>{formatNumber(lastKeepStock)}</td>
-                <td className={`px-3 py-2.5 ${c("text-slate-700", "text-slate-200")}`}>{formatCurrency(lastNilaiStok)}</td>
-              </tr>
-            </tfoot>
-          )}
-        </table>
-      </div>
-    </div>
-  );
-}
-
-function MasterList({ title, subtitle, field, usedKey, placeholder, db, setDb, toast }) {
-  const { c } = useTheme();
-  const [name, setName] = useState("");
-  const items = db[field];
-
-  const add = () => {
-    const v = name.trim();
-    if (!v) return toast("Nama wajib diisi.", "error");
-    if (items.some((i) => i.toLowerCase() === v.toLowerCase())) return toast("Nama sudah ada.", "error");
-    setDb((prev) => ({ ...prev, [field]: [...prev[field], v] }));
-    setName("");
-    toast(`${v} ditambahkan.`);
-  };
-
-  const remove = (v) => {
-    const used = db.stockRecords.filter((r) => r[usedKey] === v).length;
-    if (used > 0) return toast(`${v} masih dipakai di ${used} data Keep Stock, tidak bisa dihapus.`, "error");
-    setDb((prev) => ({ ...prev, [field]: prev[field].filter((i) => i !== v) }));
-    toast(`${v} dihapus.`);
-  };
-
-  return (
-    <div className={`rounded-2xl border p-4 ${c("bg-white border-slate-200", "bg-slate-900 border-slate-800")}`}>
-      <h3 className={`font-semibold ${c("text-slate-800", "text-slate-100")}`}>{title}</h3>
-      <p className={`text-xs mb-3 ${c("text-slate-500", "text-slate-400")}`}>{subtitle} · Total: {items.length}</p>
-      <div className="flex gap-2 mb-3">
-        <input value={name} onChange={(e) => setName(e.target.value)} onKeyDown={(e) => e.key === "Enter" && add()} placeholder={placeholder} className={inputCls(c)} />
-        <button onClick={add} className="px-3 rounded-lg text-sm font-medium bg-teal-600 text-white hover:bg-teal-700 whitespace-nowrap">
-          <Plus size={16} className="inline -mt-0.5" /> Tambah
-        </button>
-      </div>
-      {items.length === 0 && <EmptyState text="Belum ada data." />}
-      <ul className="divide-y">
-        {items.map((i) => (
-          <li key={i} className="flex items-center justify-between py-2">
-            <span className={`text-sm ${c("text-slate-700", "text-slate-200")}`}>{i}</span>
-            <button onClick={() => remove(i)} className="p-1.5 rounded-lg text-red-600 hover:bg-red-50" title="Hapus">
-              <Trash2 size={15} />
-            </button>
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
-}
-
-function MasterPage({ db, setDb, toast }) {
-  return (
-    <div>
-      <PageHeader title="Master Data" subtitle="Atur jenis ikan dan jumlah akuarium secara manual." />
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <MasterList title="Jenis Ikan" subtitle="Daftar jenis ikan" field="fishSpecies" usedKey="fishName" placeholder="mis. Pleco L144" db={db} setDb={setDb} toast={toast} />
-        <MasterList title="Akuarium / Lokasi" subtitle="Jumlah akuarium" field="locations" usedKey="location" placeholder="mis. Akuarium A1" db={db} setDb={setDb} toast={toast} />
-      </div>
-    </div>
-  );
-}
-
-/* ======================================================================
-   APP ROOT (Penyimpanan menggunakan localStorage standar browser)
-   ====================================================================== */
-
-export default function App() {
-  const [db, setDb] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [active, setActive] = useState("dashboard");
-  const [mobileOpen, setMobileOpen] = useState(false);
-  const [collapsed, setCollapsed] = useState(false);
-  const [dark, setDark] = useState(false);
-  const { toasts, push, dismiss } = useToast();
-
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved) {
-        setDb(JSON.parse(saved));
-      } else {
-        const seeded = seedDatabase();
-        setDb(seeded);
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(seeded));
-      }
-    } catch {
-      const seeded = seedDatabase();
-      setDb(seeded);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (!db) return;
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(db));
-    } catch {
-      /* fallback bila storage penuh/disabled */
-    }
-  }, [db]);
-
-  const c = useCallback((light, darkCls) => (dark ? darkCls : light), [dark]);
-  const theme = useMemo(() => ({ dark, c }), [dark, c]);
-
-  const activeLabel = MENUS.find((m) => m.key === active)?.label || "Dashboard";
-
-  if (loading || !db) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50">
-        <div className="flex flex-col items-center gap-3">
-          <img src={LOGO_SRC} alt={APP_NAME} className="h-16 w-auto animate-pulse" />
-          <p className="text-sm text-slate-500">Memuat data...</p>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <ThemeCtx.Provider value={theme}>
-      <div className={`min-h-screen font-sans ${c("bg-slate-50", "bg-slate-950")}`}>
-        <style>{`
-          @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
-          .font-sans { font-family: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif; }
-          .font-mono { font-family: 'JetBrains Mono', ui-monospace, monospace; }
-          @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
-          @media print {
-            .no-print, aside, header { display: none !important; }
-            .print-area { border: none !important; }
-            body { background: white !important; }
+          if (editingLoss) {
+            const rev = adjustStockForLoss(stockRecords, editingLoss.fishName, editingLoss.batch, -editingLoss.jumlahLoss);
+            stockRecords = rev.stockRecords;
+            const app = adjustStockForLoss(stockRecords, form.fishName, form.batch, jumlahLoss);
+            stockRecords = app.stockRecords;
+            matched = app.matched;
+          } else {
+            const app = adjustStockForLoss(stockRecords, form.fishName, form.batch, jumlahLoss);
+            stockRecords = app.stockRecords;
+            matched = app.matched;
           }
-          input[type="date"]::-webkit-calendar-picker-indicator { opacity: ${dark ? 0.7 : 1}; filter: ${dark ? "invert(1)" : "none"}; }
-        `}</style>
 
-        <Sidebar active={active} onSelect={setActive} mobileOpen={mobileOpen} setMobileOpen={setMobileOpen} collapsed={collapsed} setCollapsed={setCollapsed} />
+          const losses = editingLoss
+            ? prev.losses.map((l) => (l.id === editingLoss.id ? { ...l, ...form, jumlahLoss } : l))
+            : [...prev.losses, { ...form, jumlahLoss, id: uid(), createdAt: Date.now() }];
 
-        <div className={`transition-all duration-200 ${collapsed ? "lg:pl-[76px]" : "lg:pl-64"}`}>
-          <Topbar title={activeLabel} setMobileOpen={setMobileOpen} dark={dark} setDark={setDark} />
-          <main className="p-4 sm:p-6 max-w-[1600px] mx-auto">
-            {active === "dashboard" && <DashboardPage db={db} />}
-            {active === "keepstock" && <KeepStockPage db={db} setDb={setDb} toast={push} />}
-            {active === "sales" && <SalesPage db={db} setDb={setDb} toast={push} />}
-            {active === "loss" && <LossPage db={db} setDb={setDb} toast={push} />}
-            {active === "inventory" && <InventoryPage db={db} />}
-            {active === "laporan" && <LaporanPage db={db} toast={push} />}
-            {active === "master" && <MasterPage db={db} setDb={setDb} toast={push} />}
-          </main>
+          if (!matched) {
+            setTimeout(() => toast(`Batch "${form.batch}" tidak ditemukan di Keep Stock. Stok belum otomatis berkurang.`, "warning"), 50);
+          }
+
+          return { ...prev, stockRecords, losses };
+        });
+
+        toast(editingLoss ? "Data loss berhasil diperbarui." : "Data loss berhasil disimpan & stok telah diperbarui.");
+        setModalOpen(false);
+      };
+
+      const handleDelete = () => {
+        setDb((prev) => {
+          const { stockRecords } = adjustStockForLoss(prev.stockRecords, deleteTarget.fishName, deleteTarget.batch, -deleteTarget.jumlahLoss);
+          return { ...prev, stockRecords, losses: prev.losses.filter((l) => l.id !== deleteTarget.id) };
+        });
+        toast("Data loss berhasil dihapus dan stok dikembalikan.");
+        setDeleteTarget(null);
+      };
+
+      const columns = [
+        { key: "tanggal", label: "Tanggal", sortable: true, render: (r) => formatDate(r.tanggal) },
+        { key: "fishName", label: "Nama Ikan", sortable: true },
+        { key: "batch", label: "Batch", render: (r) => <span className="font-mono text-xs">{r.batch}</span> },
+        { key: "location", label: "Lokasi" },
+        { key: "jumlahLoss", label: "Jumlah Loss", sortable: true, render: (r) => <span className="font-semibold text-red-600">{formatNumber(r.jumlahLoss)} ekor</span> },
+        { key: "penyebab", label: "Penyebab", render: (r) => <Badge color="red">{r.penyebab}</Badge> },
+        { key: "ukuran", label: "Ukuran" },
+        { key: "kondisi", label: "Kondisi" },
+      ];
+
+      return (
+        <div>
+          <PageHeader
+            title="Data Loss"
+            subtitle="Catat ikan yang mati atau hilang — Keep Stock akan otomatis berkurang."
+            actions={
+              <button onClick={openCreate} className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium bg-gradient-to-r from-red-500 to-amber-500 text-white hover:opacity-90">
+                <Plus size={16} /> Tambah Data Loss
+              </button>
+            }
+          />
+
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
+            <StatCard icon={AlertTriangle} label="Loss Hari Ini" value={`${formatNumber(totalLossHariIni)} ekor`} accent="red" />
+            <StatCard icon={AlertTriangle} label="Loss Bulan Ini" value={`${formatNumber(totalLossBulanIni)} ekor`} accent="amber" />
+            <StatCard icon={FishIcon} label="Total Kejadian" value={formatNumber(db.losses.length)} accent="slate" />
+            <StatCard icon={TrendingDown} label="Total Loss Keseluruhan" value={`${formatNumber(db.losses.reduce((a, l) => a + l.jumlahLoss, 0))} ekor`} accent="slate" />
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
+            <RankedList title="Loss Berdasarkan Jenis Ikan" data={groupSum("fishName")} />
+            <RankedList title="Loss Berdasarkan Batch" data={groupSum("batch")} />
+            <RankedList title="Loss Berdasarkan Penyebab" data={groupSum("penyebab")} />
+          </div>
+
+          <DataTable
+            columns={columns}
+            data={filteredData}
+            searchKeys={["fishName", "batch", "location", "penyebab"]}
+            onEdit={openEdit}
+            onDelete={setDeleteTarget}
+            emptyText="Belum ada data loss."
+            filters={
+              <>
+                <SelectFilter value={fFish} onChange={setFFish} options={fishOptions} placeholder="Semua Ikan" />
+                <SelectFilter value={fPenyebab} onChange={setFPenyebab} options={PENYEBAB_LOSS} placeholder="Semua Penyebab" />
+                <input type="date" value={fFrom} onChange={(e) => setFFrom(e.target.value)} className={`${inputCls(c)} py-1.5 w-auto`} />
+                <input type="date" value={fTo} onChange={(e) => setFTo(e.target.value)} className={`${inputCls(c)} py-1.5 w-auto`} />
+              </>
+            }
+          />
+
+          {modalOpen && (
+            <Modal
+              title={editingLoss ? "Edit Data Loss" : "Tambah Data Loss"}
+              onClose={() => setModalOpen(false)}
+              wide
+              footer={
+                <>
+                  <button onClick={() => setModalOpen(false)} className={`px-4 py-2 rounded-lg text-sm font-medium border ${c("border-slate-200 text-slate-600 hover:bg-slate-50", "border-slate-700 text-slate-300 hover:bg-slate-800")}`}>Batal</button>
+                  <button onClick={handleSave} className="px-4 py-2 rounded-lg text-sm font-medium bg-red-600 text-white hover:bg-red-700">Simpan</button>
+                </>
+              }
+            >
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4">
+                <Field label="Tanggal" required><input type="date" value={form.tanggal} onChange={(e) => setForm({ ...form, tanggal: e.target.value })} className={inputCls(c)} /></Field>
+                <Field label="Nama Ikan" required>
+                  <input list="fishlist3" value={form.fishName} onChange={(e) => setForm({ ...form, fishName: e.target.value })} className={inputCls(c)} />
+                  <datalist id="fishlist3">{fishOptions.map((f) => <option key={f} value={f} />)}</datalist>
+                </Field>
+                <Field label="Kode / Batch" required>
+                  <input list="batchlist3" value={form.batch} onChange={(e) => setForm({ ...form, batch: e.target.value })} className={inputCls(c)} />
+                  <datalist id="batchlist3">{batchForFish.map((f) => <option key={f} value={f} />)}</datalist>
+                </Field>
+                <Field label="Lokasi" required>
+                  <input list="loclist3" value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} className={inputCls(c)} />
+                  <datalist id="loclist3">{locOptions.map((f) => <option key={f} value={f} />)}</datalist>
+                </Field>
+                <Field label="Jumlah Loss" required><input type="number" min="1" value={form.jumlahLoss} onChange={(e) => setForm({ ...form, jumlahLoss: e.target.value })} className={inputCls(c)} /></Field>
+                <Field label="Penyebab Loss">
+                  <select value={form.penyebab} onChange={(e) => setForm({ ...form, penyebab: e.target.value })} className={inputCls(c)}>
+                    {PENYEBAB_LOSS.map((p) => <option key={p} value={p}>{p}</option>)}
+                  </select>
+                </Field>
+                <Field label="Ukuran Ikan"><input value={form.ukuran} onChange={(e) => setForm({ ...form, ukuran: e.target.value })} className={inputCls(c)} /></Field>
+                <Field label="Kondisi Ikan">
+                  <select value={form.kondisi} onChange={(e) => setForm({ ...form, kondisi: e.target.value })} className={inputCls(c)}>
+                    {KONDISI_OPTIONS.map((k) => <option key={k} value={k}>{k}</option>)}
+                  </select>
+                </Field>
+                <div className="sm:col-span-2">
+                  <Field label="Catatan"><textarea value={form.catatan} onChange={(e) => setForm({ ...form, catatan: e.target.value })} className={inputCls(c)} rows={2} /></Field>
+                </div>
+              </div>
+            </Modal>
+          )}
+
+          {deleteTarget && (
+            <ConfirmDialog message={`Yakin ingin menghapus data loss ${deleteTarget.fishName} batch ${deleteTarget.batch}? Stok akan dikembalikan.`} onConfirm={handleDelete} onCancel={() => setDeleteTarget(null)} />
+          )}
         </div>
+      );
+    }
 
-        <ToastStack toasts={toasts} onDismiss={dismiss} />
-      </div>
-    </ThemeCtx.Provider>
-  );
-}
+    function InventoryPage({ db }) {
+      const { c } = useTheme();
+      const [fFish, setFFish] = useState("");
+      const [fLoc, setFLoc] = useState("");
+      const [fStatus, setFStatus] = useState("");
+      const [detail, setDetail] = useState(null);
+
+      const fishOptions = getDistinct(db.stockRecords, "fishName");
+      const locOptions = getDistinct(db.stockRecords, "location");
+
+      const rows = db.stockRecords.map((r) => ({ ...r, status: getStockStatus(r) }));
+
+      const filteredData = rows.filter(
+        (r) => (!fFish || r.fishName === fFish) && (!fLoc || r.location === fLoc) && (!fStatus || r.status.label === fStatus)
+      );
+
+      const columns = [
+        { key: "fishName", label: "Nama Ikan", sortable: true },
+        { key: "batch", label: "Kode Batch", render: (r) => <span className="font-mono text-xs">{r.batch}</span> },
+        { key: "location", label: "Lokasi", sortable: true },
+        { key: "stokAwal", label: "Stok Awal", sortable: true },
+        { key: "stokMasuk", label: "Stok Masuk", sortable: true },
+        { key: "terjual", label: "Terjual", sortable: true },
+        { key: "loss", label: "Loss", sortable: true },
+        { key: "keepStock", label: "Keep Stock", sortable: true, render: (r) => <span className="font-bold">{formatNumber(r.keepStock)}</span> },
+        { key: "ukuran", label: "Ukuran" },
+        { key: "status", label: "Status", render: (r) => <Badge color={r.status.color}>{r.status.label}</Badge> },
+      ];
+
+      return (
+        <div>
+          <PageHeader title="Inventory" subtitle="Seluruh posisi stok ikan berdasarkan batch, lengkap dengan indikator status." />
+
+          <div className={`flex flex-wrap items-center gap-3 mb-4 text-xs rounded-xl border p-3 ${c("bg-white border-slate-200", "bg-slate-900 border-slate-800")}`}>
+            <span className={`font-medium ${c("text-slate-500", "text-slate-400")}`}>Legenda:</span>
+            <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-emerald-500" /> Hijau = Stok Aman</span>
+            <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-amber-500" /> Kuning = Stok Menipis</span>
+            <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-red-500" /> Merah = Stok Kritis / Habis</span>
+          </div>
+
+          <DataTable
+            columns={columns}
+            data={filteredData}
+            searchKeys={["fishName", "batch", "location"]}
+            onView={setDetail}
+            emptyText="Belum ada data inventory."
+            filters={
+              <>
+                <SelectFilter value={fFish} onChange={setFFish} options={fishOptions} placeholder="Semua Ikan" />
+                <SelectFilter value={fLoc} onChange={setFLoc} options={locOptions} placeholder="Semua Lokasi" />
+                <SelectFilter value={fStatus} onChange={setFStatus} options={["Aman", "Menipis", "Kritis", "Habis"]} placeholder="Semua Status" />
+              </>
+            }
+          />
+
+          {detail && (
+            <Modal title={`Detail Batch — ${detail.batch}`} onClose={() => setDetail(null)}>
+              <div className="space-y-2 text-sm">
+                {[
+                  ["Nama Ikan", detail.fishName],
+                  ["Batch", detail.batch],
+                  ["Lokasi", detail.location],
+                  ["Tanggal", formatDate(detail.tanggal)],
+                  ["Stok Awal", `${formatNumber(detail.stokAwal)} ekor`],
+                  ["Stok Masuk", `${formatNumber(detail.stokMasuk)} ekor`],
+                  ["Stok Keluar", `${formatNumber(detail.stokKeluar)} ekor`],
+                  ["Terjual", `${formatNumber(detail.terjual)} ekor`],
+                  ["Loss", `${formatNumber(detail.loss)} ekor`],
+                  ["Keep Stock", `${formatNumber(detail.keepStock)} ekor`],
+                  ["Ukuran", detail.ukuran || "-"],
+                  ["Kondisi", detail.kondisi],
+                  ["Catatan", detail.catatan || "-"],
+                ].map(([k, v]) => (
+                  <div key={k} className={`flex justify-between border-b pb-1.5 ${c("border-slate-100", "border-slate-800")}`}>
+                    <span className={c("text-slate-500", "text-slate-400")}>{k}</span>
+                    <span className={`font-medium text-right ${c("text-slate-700", "text-slate-200")}`}>{v}</span>
+                  </div>
+                ))}
+              </div>
+            </Modal>
+          )}
+        </div>
+      );
+    }
+
+    function LaporanPage({ db, toast }) {
+      const { c } = useTheme();
+      const [range, setRange] = useState("bulan");
+      const [customFrom, setCustomFrom] = useState(daysAgo(29));
+      const [customTo, setCustomTo] = useState(todayStr());
+      const [fFish, setFFish] = useState("");
+      const [fBatch, setFBatch] = useState("");
+      const [fLoc, setFLoc] = useState("");
+
+      const fishOptions = getDistinct(db.stockRecords, "fishName");
+      const batchOptions = getDistinct(db.stockRecords, "batch");
+      const locOptions = getDistinct(db.stockRecords, "location");
+
+      const { from, to } = useMemo(() => {
+        const today = todayStr();
+        if (range === "hari") return { from: today, to: today };
+        if (range === "minggu") return { from: daysAgo(6), to: today };
+        if (range === "bulan") return { from: daysAgo(29), to: today };
+        return { from: customFrom, to: customTo };
+      }, [range, customFrom, customTo]);
+
+      const matchDim = (r) => (!fFish || r.fishName === fFish) && (!fBatch || r.batch === fBatch) && (!fLoc || !r.location || r.location === fLoc);
+
+      const stockF = db.stockRecords.filter((r) => matchDim(r) && inRange(r.tanggal, from, to));
+      const salesF = db.sales.filter((s) => (!fFish || s.fishName === fFish) && (!fBatch || s.batch === fBatch) && inRange(s.tanggal, from, to));
+      const lossF = db.losses.filter((l) => matchDim(l) && inRange(l.tanggal, from, to));
+
+      const dateList = useMemo(() => {
+        const out = [];
+        let d = new Date(from + "T00:00:00");
+        const end = new Date(to + "T00:00:00");
+        while (d <= end) {
+          out.push(d.toISOString().slice(0, 10));
+          d.setDate(d.getDate() + 1);
+        }
+        return out;
+      }, [from, to]);
+
+      const reportRows = dateList.map((d) => {
+        const stokMasuk = stockF.filter((r) => r.tanggal === d).reduce((a, r) => a + r.stokMasuk, 0);
+        const stokKeluarManual = stockF.filter((r) => r.tanggal === d).reduce((a, r) => a + r.stokKeluar, 0);
+        const penjualanEkor = salesF.filter((s) => s.tanggal === d).reduce((a, s) => a + s.jumlah, 0);
+        const nilaiPenjualan = salesF.filter((s) => s.tanggal === d).reduce((a, s) => a + s.total, 0);
+        const lossEkor = lossF.filter((l) => l.tanggal === d).reduce((a, l) => a + l.jumlahLoss, 0);
+        const stokKeluar = stokKeluarManual + penjualanEkor + lossEkor;
+
+        const masukKum = db.stockRecords.filter((r) => matchDim(r) && r.tanggal <= d).reduce((a, r) => a + r.stokAwal + r.stokMasuk, 0);
+        const keluarKum =
+          db.stockRecords.filter((r) => matchDim(r) && r.tanggal <= d).reduce((a, r) => a + r.stokKeluar, 0) +
+          db.sales.filter((s) => (!fFish || s.fishName === fFish) && (!fBatch || s.batch === fBatch) && s.tanggal <= d).reduce((a, s) => a + s.jumlah, 0) +
+          db.losses.filter((l) => matchDim(l) && l.tanggal <= d).reduce((a, l) => a + l.jumlahLoss, 0);
+        const keepStock = Math.max(0, masukKum - keluarKum);
+        const nilaiStok = keepStock * getAvgPrice(db.sales, fFish || (fishOptions[0] || ""));
+
+        return {
+          tanggal: d, tanggalLabel: formatDate(d), stokMasuk, stokKeluar,
+          penjualanEkor, nilaiPenjualan, loss: lossEkor, keepStock, nilaiStok,
+        };
+      });
+
+      const totals = reportRows.reduce(
+        (a, r) => ({
+          stokMasuk: a.stokMasuk + r.stokMasuk,
+          stokKeluar: a.stokKeluar + r.stokKeluar,
+          penjualanEkor: a.penjualanEkor + r.penjualanEkor,
+          nilaiPenjualan: a.nilaiPenjualan + r.nilaiPenjualan,
+          loss: a.loss + r.loss,
+        }),
+        { stokMasuk: 0, stokKeluar: 0, penjualanEkor: 0, nilaiPenjualan: 0, loss: 0 }
+      );
+      const lastKeepStock = reportRows.length ? reportRows[reportRows.length - 1].keepStock : 0;
+      const lastNilaiStok = reportRows.length ? reportRows[reportRows.length - 1].nilaiStok : 0;
+
+      const headers = [
+        { key: "tanggalLabel", label: "Tanggal" },
+        { key: "stokMasuk", label: "Stok Masuk" },
+        { key: "stokKeluar", label: "Stok Keluar" },
+        { key: "penjualanEkor", label: "Penjualan (ekor)" },
+        { key: "nilaiPenjualan", label: "Nilai Penjualan (Rp)" },
+        { key: "loss", label: "Loss" },
+        { key: "keepStock", label: "Keep Stock" },
+        { key: "nilaiStok", label: "Nilai Stok (Rp)" },
+      ];
+
+      const exportCSV = () => {
+        const csv = toCSV(reportRows, headers);
+        downloadBlob(csv, `laporan-stok-ikan_${from}_${to}.csv`, "text/csv;charset=utf-8;");
+        toast("Laporan berhasil diexport ke CSV.");
+      };
+
+      const exportExcel = () => {
+        try {
+          const sheetData = reportRows.map((r) => {
+            const o = {};
+            headers.forEach((h) => (o[h.label] = r[h.key]));
+            return o;
+          });
+          const ws = XLSX.utils.json_to_sheet(sheetData);
+          const wb = XLSX.utils.book_new();
+          XLSX.utils.book_append_sheet(wb, ws, "Laporan");
+          XLSX.writeFile(wb, `laporan-stok-ikan_${from}_${to}.xlsx`);
+          toast("Laporan berhasil diexport ke Excel.");
+        } catch {
+          toast("Gagal export Excel.", "error");
+        }
+      };
+
+      const handlePrint = () => window.print();
+
+      const quickBtn = (key, label) => (
+        <button
+          onClick={() => setRange(key)}
+          className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition ${
+            range === key
+              ? "bg-teal-600 border-teal-600 text-white"
+              : c("border-slate-200 text-slate-600 hover:bg-slate-50", "border-slate-700 text-slate-300 hover:bg-slate-800")
+          }`}
+        >
+          {label}
+        </button>
+      );
+
+      return (
+        <div>
+          <PageHeader
+            title="Laporan"
+            subtitle="Rekap stok masuk, keluar, penjualan, loss, dan nilai stok berdasarkan periode."
+            actions={
+              <>
+                <button onClick={exportCSV} className={`flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-sm font-medium border ${c("border-slate-200 text-slate-600 hover:bg-slate-50", "border-slate-700 text-slate-300 hover:bg-slate-800")}`}><Download size={15} /> CSV</button>
+                <button onClick={exportExcel} className={`flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-sm font-medium border ${c("border-slate-200 text-slate-600 hover:bg-slate-50", "border-slate-700 text-slate-300 hover:bg-slate-800")}`}><Download size={15} /> Excel</button>
+                <button onClick={handlePrint} className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-sm font-medium bg-gradient-to-r from-teal-600 to-cyan-600 text-white hover:opacity-90"><Printer size={15} /> Print</button>
+              </>
+            }
+          />
+
+          <div className={`no-print flex flex-wrap items-center gap-2 mb-4 rounded-xl border p-3 ${c("bg-white border-slate-200", "bg-slate-900 border-slate-800")}`}>
+            <Filter size={15} className={c("text-slate-400", "text-slate-500")} />
+            {quickBtn("hari", "Hari Ini")}
+            {quickBtn("minggu", "Minggu Ini")}
+            {quickBtn("bulan", "Bulan Ini")}
+            {quickBtn("custom", "Custom")}
+            {range === "custom" && (
+              <>
+                <input type="date" value={customFrom} onChange={(e) => setCustomFrom(e.target.value)} className={`${inputCls(c)} py-1.5 w-auto`} />
+                <span className={c("text-slate-400", "text-slate-500")}>s/d</span>
+                <input type="date" value={customTo} onChange={(e) => setCustomTo(e.target.value)} className={`${inputCls(c)} py-1.5 w-auto`} />
+              </>
+            )}
+            <span className={`mx-1 h-5 border-l ${c("border-slate-200", "border-slate-700")}`} />
+            <SelectFilter value={fFish} onChange={setFFish} options={fishOptions} placeholder="Semua Ikan" />
+            <SelectFilter value={fBatch} onChange={setFBatch} options={batchOptions} placeholder="Semua Batch" />
+            <SelectFilter value={fLoc} onChange={setFLoc} options={locOptions} placeholder="Semua Lokasi" />
+          </div>
+
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
+            <StatCard icon={PackagePlus} label="Total Stok Masuk" value={`${formatNumber(totals.stokMasuk)} ekor`} accent="emerald" />
+            <StatCard icon={PackageMinus} label="Total Stok Keluar" value={`${formatNumber(totals.stokKeluar)} ekor`} accent="amber" />
+            <StatCard icon={ShoppingCart} label="Nilai Penjualan" value={formatCurrency(totals.nilaiPenjualan)} sub={`${formatNumber(totals.penjualanEkor)} ekor`} accent="cyan" />
+            <StatCard icon={Wallet} label="Nilai Stok Akhir Periode" value={formatCurrency(lastNilaiStok)} sub={`${formatNumber(lastKeepStock)} ekor`} accent="teal" />
+          </div>
+
+          <div className={`print-area rounded-2xl border overflow-x-auto ${c("bg-white border-slate-200", "bg-slate-900 border-slate-800")}`}>
+            <table className="w-full text-sm">
+              <thead>
+                <tr className={c("bg-slate-50", "bg-slate-800/60")}>
+                  {headers.map((h) => (
+                    <th key={h.key} className={`text-left px-3 py-2.5 text-xs font-semibold uppercase whitespace-nowrap ${c("text-slate-500", "text-slate-400")}`}>{h.label}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {reportRows.length === 0 && (
+                  <tr>
+                    <td colSpan={headers.length}><EmptyState text="Tidak ada data pada periode ini." /></td>
+                  </tr>
+                )}
+                {reportRows.map((r) => (
+                  <tr key={r.tanggal} className={`border-t ${c("border-slate-100", "border-slate-800")}`}>
+                    <td className={`px-3 py-2 whitespace-nowrap ${c("text-slate-700", "text-slate-200")}`}>{r.tanggalLabel}</td>
+                    <td className={`px-3 py-2 ${c("text-slate-600", "text-slate-300")}`}>{formatNumber(r.stokMasuk)}</td>
+                    <td className={`px-3 py-2 ${c("text-slate-600", "text-slate-300")}`}>{formatNumber(r.stokKeluar)}</td>
+                    <td className={`px-3 py-2 ${c("text-slate-600", "text-slate-300")}`}>{formatNumber(r.penjualanEkor)}</td>
+                    <td className={`px-3 py-2 ${c("text-slate-600", "text-slate-300")}`}>{formatCurrency(r.nilaiPenjualan)}</td>
+                    <td className="px-3 py-2 text-red-600">{formatNumber(r.loss)}</td>
+                    <td className={`px-3 py-2 font-semibold ${c("text-slate-700", "text-slate-200")}`}>{formatNumber(r.keepStock)}</td>
+                    <td className={`px-3 py-2 ${c("text-slate-600", "text-slate-300")}`}>{formatCurrency(r.nilaiStok)}</td>
+                  </tr>
+                ))}
+              </tbody>
+              {reportRows.length > 0 && (
+                <tfoot>
+                  <tr className={`border-t-2 font-semibold ${c("border-slate-200 bg-slate-50", "border-slate-700 bg-slate-800/60")}`}>
+                    <td className={`px-3 py-2.5 ${c("text-slate-700", "text-slate-200")}`}>Total</td>
+                    <td className={`px-3 py-2.5 ${c("text-slate-700", "text-slate-200")}`}>{formatNumber(totals.stokMasuk)}</td>
+                    <td className={`px-3 py-2.5 ${c("text-slate-700", "text-slate-200")}`}>{formatNumber(totals.stokKeluar)}</td>
+                    <td className={`px-3 py-2.5 ${c("text-slate-700", "text-slate-200")}`}>{formatNumber(totals.penjualanEkor)}</td>
+                    <td className={`px-3 py-2.5 ${c("text-slate-700", "text-slate-200")}`}>{formatCurrency(totals.nilaiPenjualan)}</td>
+                    <td className="px-3 py-2.5 text-red-600">{formatNumber(totals.loss)}</td>
+                    <td className={`px-3 py-2.5 ${c("text-slate-700", "text-slate-200")}`}>{formatNumber(lastKeepStock)}</td>
+                    <td className={`px-3 py-2.5 ${c("text-slate-700", "text-slate-200")}`}>{formatCurrency(lastNilaiStok)}</td>
+                  </tr>
+                </tfoot>
+              )}
+            </table>
+          </div>
+        </div>
+      );
+    }
+
+    function MasterList({ title, subtitle, field, usedKey, placeholder, db, setDb, toast }) {
+      const { c } = useTheme();
+      const [name, setName] = useState("");
+      const items = db[field];
+
+      const add = () => {
+        const v = name.trim();
+        if (!v) return toast("Nama wajib diisi.", "error");
+        if (items.some((i) => i.toLowerCase() === v.toLowerCase())) return toast("Nama sudah ada.", "error");
+        setDb((prev) => ({ ...prev, [field]: [...prev[field], v] }));
+        setName("");
+        toast(`${v} ditambahkan.`);
+      };
+
+      const remove = (v) => {
+        const used = db.stockRecords.filter((r) => r[usedKey] === v).length;
+        if (used > 0) return toast(`${v} masih dipakai di ${used} data Keep Stock, tidak bisa dihapus.`, "error");
+        setDb((prev) => ({ ...prev, [field]: prev[field].filter((i) => i !== v) }));
+        toast(`${v} dihapus.`);
+      };
+
+      return (
+        <div className={`rounded-2xl border p-4 ${c("bg-white border-slate-200", "bg-slate-900 border-slate-800")}`}>
+          <h3 className={`font-semibold ${c("text-slate-800", "text-slate-100")}`}>{title}</h3>
+          <p className={`text-xs mb-3 ${c("text-slate-500", "text-slate-400")}`}>{subtitle} · Total: {items.length}</p>
+          <div className="flex gap-2 mb-3">
+            <input value={name} onChange={(e) => setName(e.target.value)} onKeyDown={(e) => e.key === "Enter" && add()} placeholder={placeholder} className={inputCls(c)} />
+            <button onClick={add} className="px-3 rounded-lg text-sm font-medium bg-teal-600 text-white hover:bg-teal-700 whitespace-nowrap">
+              <Plus size={16} className="inline -mt-0.5" /> Tambah
+            </button>
+          </div>
+          {items.length === 0 && <EmptyState text="Belum ada data." />}
+          <ul className="divide-y">
+            {items.map((i) => (
+              <li key={i} className="flex items-center justify-between py-2">
+                <span className={`text-sm ${c("text-slate-700", "text-slate-200")}`}>{i}</span>
+                <button onClick={() => remove(i)} className="p-1.5 rounded-lg text-red-600 hover:bg-red-50" title="Hapus">
+                  <Trash2 size={15} />
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      );
+    }
+
+    function MasterPage({ db, setDb, toast }) {
+      return (
+        <div>
+          <PageHeader title="Master Data" subtitle="Atur jenis ikan dan jumlah akuarium secara manual." />
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <MasterList title="Jenis Ikan" subtitle="Daftar jenis ikan" field="fishSpecies" usedKey="fishName" placeholder="mis. Pleco L144" db={db} setDb={setDb} toast={toast} />
+            <MasterList title="Akuarium / Lokasi" subtitle="Jumlah akuarium" field="locations" usedKey="location" placeholder="mis. Akuarium A1" db={db} setDb={setDb} toast={toast} />
+          </div>
+        </div>
+      );
+    }
+
+    /* ======================================================================
+       APP ROOT
+       ====================================================================== */
+
+    function App() {
+      const [db, setDb] = useState(null);
+      const [loading, setLoading] = useState(true);
+      const [active, setActive] = useState("dashboard");
+      const [mobileOpen, setMobileOpen] = useState(false);
+      const [collapsed, setCollapsed] = useState(false);
+      const [dark, setDark] = useState(false);
+      const { toasts, push, dismiss } = useToast();
+
+      useEffect(() => {
+        try {
+          const saved = localStorage.getItem(STORAGE_KEY);
+          if (saved) {
+            setDb(JSON.parse(saved));
+          } else {
+            const seeded = seedDatabase();
+            setDb(seeded);
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(seeded));
+          }
+        } catch {
+          const seeded = seedDatabase();
+          setDb(seeded);
+        } finally {
+          setLoading(false);
+        }
+      }, []);
+
+      useEffect(() => {
+        if (!db) return;
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(db));
+        } catch {
+          /* fallback bila localStorage tidak tersedia */
+        }
+      }, [db]);
+
+      const c = useCallback((light, darkCls) => (dark ? darkCls : light), [dark]);
+      const theme = useMemo(() => ({ dark, c }), [dark, c]);
+
+      const activeLabel = MENUS.find((m) => m.key === active)?.label || "Dashboard";
+
+      if (loading || !db) {
+        return (
+          <div className="min-h-screen flex items-center justify-center bg-slate-50">
+            <div className="flex flex-col items-center gap-3">
+              <img src={LOGO_SRC} alt={APP_NAME} className="h-16 w-auto animate-pulse" />
+              <p className="text-sm text-slate-500">Memuat data...</p>
+            </div>
+          </div>
+        );
+      }
+
+      return (
+        <ThemeCtx.Provider value={theme}>
+          <div className={`min-h-screen font-sans ${c("bg-slate-50", "bg-slate-950")}`}>
+            <style>{`
+              @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+              .font-sans { font-family: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif; }
+              .font-mono { font-family: 'JetBrains Mono', ui-monospace, monospace; }
+              @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+              @media print {
+                .no-print, aside, header { display: none !important; }
+                .print-area { border: none !important; }
+                body { background: white !important; }
+              }
+              input[type="date"]::-webkit-calendar-picker-indicator { opacity: ${dark ? 0.7 : 1}; filter: ${dark ? "invert(1)" : "none"}; }
+            `}</style>
+
+            <Sidebar active={active} onSelect={setActive} mobileOpen={mobileOpen} setMobileOpen={setMobileOpen} collapsed={collapsed} setCollapsed={setCollapsed} />
+
+            <div className={`transition-all duration-200 ${collapsed ? "lg:pl-[76px]" : "lg:pl-64"}`}>
+              <Topbar title={activeLabel} setMobileOpen={setMobileOpen} dark={dark} setDark={setDark} />
+              <main className="p-4 sm:p-6 max-w-[1600px] mx-auto">
+                {active === "dashboard" && <DashboardPage db={db} />}
+                {active === "keepstock" && <KeepStockPage db={db} setDb={setDb} toast={push} />}
+                {active === "sales" && <SalesPage db={db} setDb={setDb} toast={push} />}
+                {active === "loss" && <LossPage db={db} setDb={setDb} toast={push} />}
+                {active === "inventory" && <InventoryPage db={db} />}
+                {active === "laporan" && <LaporanPage db={db} toast={push} />}
+                {active === "master" && <MasterPage db={db} setDb={setDb} toast={push} />}
+              </main>
+            </div>
+
+            <ToastStack toasts={toasts} onDismiss={dismiss} />
+          </div>
+        </ThemeCtx.Provider>
+      );
+    }
+
+    const root = createRoot(document.getElementById("root"));
+    root.render(<App />);
+  </script>
+</body>
+</html>
